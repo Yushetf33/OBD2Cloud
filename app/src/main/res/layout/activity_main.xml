@@ -60,6 +60,22 @@
             app:layout_constraintVertical_bias="0.421" />
 
         <TextView
+            android:id="@+id/gyro_display"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Gyroscope Values"
+            android:textSize="18sp"
+            android:layout_marginTop="16dp"/>
+
+        <TextView
+            android:id="@+id/accel_display"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Acceleration Data"
+            android:textSize="16sp"
+            />
+
+        <TextView
             android:id="@+id/intake_air_display"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -430,4 +446,3 @@
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>
-

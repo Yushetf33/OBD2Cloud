@@ -2,7 +2,12 @@ package com.example.obd2cloud
 
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
+import android.content.Context
 import android.content.Intent
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -15,7 +20,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import com.example.obd2cloud.R
 import com.google.android.material.appbar.MaterialToolbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,43 +29,38 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class MainActivity : AppCompatActivity(), View.OnClickListener {
-    //used for dynamically change menu entry title
+class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListener {
     var menu: Menu? = null
 
-    //displays gauges
     private lateinit var connection_status: TextView
     private lateinit var speed_display: TextView
     private lateinit var RPM_display: TextView
     private lateinit var coolant_display: TextView
     private lateinit var oil_temp_display: TextView
     private lateinit var engine_load_display: TextView
+    private lateinit var gyro_display: TextView
+    private lateinit var accel_display: TextView
 
     private var address: String = ""
-
     private lateinit var mBluetoothAdapter: BluetoothAdapter
     private lateinit var bluetoothClient: BluetoothClient
-
-    private var lastRPMValue: String = ""
-    private var lastSpeedValue: String = ""
-    private var lastOilValue: String = ""
-    private var lastCoolantValue: String = ""
-    private var lastEngineLoad: String = ""
-
     private var connected: Boolean = false
     private var read: Boolean = true
     private var log: Boolean = false
-
     private lateinit var stop: Button
     private lateinit var file: CsvLog
     private var bt: MenuItem? = null
-
     private var job: Job? = null
+
+    private lateinit var sensorManager: SensorManager
+    private lateinit var gyroscope: Sensor
+    private lateinit var accelerometer: Sensor
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
         val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
 
@@ -71,12 +70,26 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         coolant_display = findViewById(R.id.coolant_display)
         oil_temp_display = findViewById(R.id.oil_temp_display)
         engine_load_display = findViewById(R.id.engine_load_display)
+        gyro_display = findViewById(R.id.gyro_display)
+        accel_display = findViewById(R.id.accel_display)  // Inicializar la variable
 
-        stop = findViewById<Button>(R.id.stop)
+
+
+
+        stop = findViewById(R.id.stop)
         stop.setOnClickListener(this)
         stop.isEnabled = false
 
         connection_status.text = getString(R.string.not_connected)
+
+        // Inicializar sensores
+        sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+        gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+
+        // Registrar listeners de los sensores
+        sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_NORMAL)
+        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL)
     }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -90,10 +103,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.bt_connect -> {
-                startActivityForResult(
-                    Intent(this@MainActivity, BluetoothActivity::class.java),
-                    1
-                )
+                startActivityForResult(Intent(this@MainActivity, BluetoothActivity::class.java), 1)
                 return true
             }
             R.id.rec -> {
@@ -112,10 +122,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                 } else {
                     menu?.findItem(R.id.rec)?.title = "Start logging"
                     log = false
-                    Toast.makeText(
-                        this, "Stop logging\nFile saved in ${file.path}.",
-                        Toast.LENGTH_LONG
-                    ).show()
+                    Toast.makeText(this, "Stop logging\nFile saved in ${file.path}.", Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -154,7 +161,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                     runOnUiThread {
                         connection_status.text = getString(R.string.connection_error)
                     }
-                    e.printStackTrace()
                 }
             }
         }
@@ -179,14 +185,21 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
     }
 
     private suspend fun updateUI() {
-        // Fetch all parameters concurrently using async
         val rpmRet = CoroutineScope(Dispatchers.IO).async { RPM() }.await()
         val speedRet = CoroutineScope(Dispatchers.IO).async { speed() }.await()
         val coolantRet = CoroutineScope(Dispatchers.IO).async { coolant() }.await()
         val oilRet = CoroutineScope(Dispatchers.IO).async { oiltemp() }.await()
         val engineLoadRet = CoroutineScope(Dispatchers.IO).async { engineLoad() }.await()
 
-        // Update UI only if the values have changed
+        // Obtén los valores del giroscopio y acelerómetro
+        val gyroX = lastGyroX
+        val gyroY = lastGyroY
+        val gyroZ = lastGyroZ
+        val accelX = lastAccelX
+        val accelY = lastAccelY
+        val accelZ = lastAccelZ
+
+        // Actualiza la UI solo si hay cambios
         if (rpmRet != lastRPMValue) {
             lastRPMValue = rpmRet
             withContext(Dispatchers.Main) {
@@ -223,6 +236,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         }
 
         if (log) {
+            // Agrega los valores de los sensores al archivo CSV
             file.appendRow(
                 listOf(
                     (System.currentTimeMillis() / 1000).toString(),
@@ -230,9 +244,63 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                     speedRet,
                     coolantRet,
                     oilRet,
-                    engineLoadRet
+                    engineLoadRet,
+                    gyroX,
+                    gyroY,
+                    gyroZ,
+                    accelX,
+                    accelY,
+                    accelZ
                 )
             )
+        }
+    }
+
+
+    override fun onSensorChanged(event: SensorEvent?) {
+        event?.let {
+            when (event.sensor.type) {
+                Sensor.TYPE_GYROSCOPE -> {
+                    lastGyroX = event.values[0].toString()
+                    lastGyroY = event.values[1].toString()
+                    lastGyroZ = event.values[2].toString()
+                    gyro_display.text = getString(
+                        R.string.gyro_values,
+                        event.values[0],
+                        event.values[1],
+                        event.values[2]
+                    )
+                }
+                Sensor.TYPE_ACCELEROMETER -> {
+                    lastAccelX = event.values[0].toString()
+                    lastAccelY = event.values[1].toString()
+                    lastAccelZ = event.values[2].toString()
+                    accel_display.text = getString(
+                        R.string.accel_values,
+                        event.values[0],
+                        event.values[1],
+                        event.values[2]
+                    )
+                }
+            }
+        }
+    }
+
+
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+
+    override fun onClick(v: View?) {
+        when (v?.id) {
+            R.id.stop -> {
+                read = false
+                resetDisplays()
+                connected = false
+                bluetoothClient.disconnect()
+                connection_status.text = getString(R.string.not_connected)
+                stop.isEnabled = false
+                bt?.isEnabled = true
+                bt?.icon?.alpha = 255
+            }
         }
     }
 
@@ -287,25 +355,33 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         coolant_display.text = getString(R.string.default_display)
         oil_temp_display.text = getString(R.string.default_display)
         engine_load_display.text = getString(R.string.default_display)
-        lastRPMValue = ""
-        lastSpeedValue = ""
-        lastCoolantValue = ""
-        lastOilValue = ""
-        lastEngineLoad = ""
+        gyro_display.text =getString(R.string.default_display)
+        accel_display.text = getString(R.string.default_display)
     }
 
-    override fun onClick(v: View?) {
-        when (v?.id) {
-            R.id.stop -> {
-                read = false
-                resetDisplays()
-                connected = false
-                bluetoothClient.disconnect()
-                connection_status.text = getString(R.string.not_connected)
-                stop.isEnabled = false
-                bt?.isEnabled = true
-                bt?.icon?.alpha = 255
-            }
-        }
+    override fun onResume() {
+        super.onResume()
+        sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_NORMAL)
+        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        sensorManager.unregisterListener(this)
+    }
+
+    companion object {
+        var lastRPMValue = ""
+        var lastSpeedValue = ""
+        var lastCoolantValue = ""
+        var lastOilValue = ""
+        var lastEngineLoad = ""
+
+        var lastGyroX = ""
+        var lastGyroY = ""
+        var lastGyroZ = ""
+        var lastAccelX = ""
+        var lastAccelY = ""
+        var lastAccelZ = ""
     }
 }

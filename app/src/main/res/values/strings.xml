@@ -6,4 +6,6 @@
     <string name="connection_error">Connection error: unable to connect</string>
     <string name="connecting_address">Connecting to %s …</string>
     <string name="default_display">_._</string>
+    <string name="gyro_values">Gyro X: %1$.2f, Y: %2$.2f, Z: %3$.2f</string>
+    <string name="accel_values">Acceleration values: X: %1$.2f, Y: %2$.2f, Z: %3$.2f</string>
 </resources>
