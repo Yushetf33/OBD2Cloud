@@ -13,6 +13,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.Button
@@ -55,6 +56,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     private lateinit var sensorManager: SensorManager
     private lateinit var gyroscope: Sensor
     private lateinit var accelerometer: Sensor
+
+    private var touchCount: Int = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -111,7 +114,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                     menu?.findItem(R.id.rec)?.title = "Stop logging"
                     try {
                         file = CsvLog(
-                            "OBDOBC_log_${System.currentTimeMillis() / 1000}.csv",
+                            "OBD2Cloud_log_${System.currentTimeMillis() / 1000}.csv",
                             applicationContext
                         )
                         file.makeHeader()
@@ -250,7 +253,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                     gyroZ,
                     accelX,
                     accelY,
-                    accelZ
+                    accelZ,
+                    touchCount.toString()
                 )
             )
         }
@@ -289,6 +293,13 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 
+    override fun onTouchEvent(event: MotionEvent?): Boolean {
+        if (log && event?.action == MotionEvent.ACTION_DOWN) {
+            touchCount++ // Incrementar contador de toques si está loggeando
+        }
+        return super.onTouchEvent(event)
+    }
+
     override fun onClick(v: View?) {
         when (v?.id) {
             R.id.stop -> {
@@ -300,6 +311,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                 stop.isEnabled = false
                 bt?.isEnabled = true
                 bt?.icon?.alpha = 255
+
+                touchCount = 0
             }
         }
     }
