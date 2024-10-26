@@ -133,12 +133,17 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
 
     private fun startMaxSpeedLoop() {
         lifecycleScope.launch(Dispatchers.IO) {
-            while (isActive) { // El bucle continuará mientras la coroutine esté activa
-                obtenerMaxSpeed() // Realiza la consulta
-                delay(3000) // Espera 3 segundos
+            try {
+                while (isActive) { // El bucle continuará mientras la coroutine esté activa
+                    obtenerMaxSpeed() // Realiza la consulta
+                    delay(3000) // Espera 3 segundos
+                }
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Error en startMaxSpeedLoop: ${e.message}")
             }
         }
     }
+
 
     private fun solicitarPermisos() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -149,7 +154,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     }
 
     private fun obtenerMaxSpeed() {
-        openStreetMapService.obtenerMaxSpeed(7) { resultado ->
+        openStreetMapService.obtenerMaxSpeed(66) { resultado ->
             if (resultado != null) {
                 try {
                     // Convierte el resultado a un objeto JSON
