@@ -12,6 +12,7 @@ import android.hardware.SensorManager
 import android.Manifest
 import android.os.Build
 import android.os.Bundle
+import android.os.Looper
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
@@ -74,7 +75,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     private lateinit var openStreetMapService: OpenStreetMapService
     private lateinit var permisoUbicacionLauncher: ActivityResultLauncher<String>
     private var maxSpeedValue: String? = null
-    private lateinit var handler: Handler
+    private val handler = android.os.Handler(Looper.getMainLooper())
     private lateinit var runnable: Runnable
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -145,17 +146,9 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         }
     }
 
-
-    private fun solicitarPermisos() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            permisoUbicacionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-        } else {
-            obtenerMaxSpeed()
-        }
-    }
-
     private fun obtenerMaxSpeed() {
         // Crea una instancia de LocationService
+        Log.d("MainActivity", "obtenerMaxSpeed llamada")
         val locationService = LocationService(this)
 
         // Obtén la ubicación actual
@@ -229,6 +222,30 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        startUpdatingMaxSpeed()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        stopUpdatingMaxSpeed()
+    }
+
+    private fun startUpdatingMaxSpeed() {
+        runnable = object : Runnable {
+            override fun run() {
+                obtenerMaxSpeed() // Llama a la función para obtener la velocidad máxima
+                handler.postDelayed(this, 3000) // Espera 3 segundos antes de volver a ejecutar
+            }
+        }
+        handler.post(runnable) // Inicia el bucle
+    }
+
+    private fun stopUpdatingMaxSpeed() {
+        handler.removeCallbacks(runnable) // Detiene el bucle
+    }
+
     // Método para calcular la distancia entre dos puntos (latitud, longitud)
     private fun calcularDistancia(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
         val radius = 6371 // Radio de la Tierra en kilómetros
@@ -241,8 +258,13 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         return radius * c // Distancia en kilómetros
     }
 
-
-
+    private fun solicitarPermisos() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            permisoUbicacionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        } else {
+            obtenerMaxSpeed()
+        }
+    }
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.menu, menu)
