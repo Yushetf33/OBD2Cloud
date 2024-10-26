@@ -15,3 +15,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "OBD2Cloud"
 include ':app'
+include ':opencv'

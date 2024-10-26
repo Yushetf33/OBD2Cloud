@@ -4,10 +4,12 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.Manifest
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -19,16 +21,23 @@ import android.view.WindowManager
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import com.google.android.gms.location.LocationServices
 import com.google.android.material.appbar.MaterialToolbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.util.logging.Handler
 
 class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListener {
     var menu: Menu? = null
@@ -37,7 +46,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     private lateinit var speed_display: TextView
     private lateinit var RPM_display: TextView
     private lateinit var coolant_display: TextView
-    private lateinit var oil_temp_display: TextView
+    private lateinit var maxSpeed_display: TextView
     private lateinit var engine_load_display: TextView
     private lateinit var gyro_display: TextView
     private lateinit var accel_display: TextView
@@ -59,6 +68,13 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
 
     private var touchCount: Int = 0
 
+    private lateinit var locationService: LocationService
+    private lateinit var openStreetMapService: OpenStreetMapService
+    private lateinit var permisoUbicacionLauncher: ActivityResultLauncher<String>
+    private var maxSpeedValue: String? = null
+    private lateinit var handler: Handler
+    private lateinit var runnable: Runnable
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -71,13 +87,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         speed_display = findViewById(R.id.speed_display)
         RPM_display = findViewById(R.id.RPM_display)
         coolant_display = findViewById(R.id.coolant_display)
-        oil_temp_display = findViewById(R.id.oil_temp_display)
+        maxSpeed_display = findViewById(R.id.maxSpeed_display)
         engine_load_display = findViewById(R.id.engine_load_display)
         gyro_display = findViewById(R.id.gyro_display)
         accel_display = findViewById(R.id.accel_display)  // Inicializar la variable
-
-
-
 
         stop = findViewById(R.id.stop)
         stop.setOnClickListener(this)
@@ -92,8 +105,83 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
 
         // Registrar listeners de los sensores
         sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_NORMAL)
-        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL)
+        sensorManager.registerListener(
+            this,
+            accelerometer,
+            SensorManager.SENSOR_DELAY_NORMAL
+        )
+
+        // Inicializar LocationService y OpenStreetMapService
+        locationService = LocationService(this)
+        openStreetMapService = OpenStreetMapService(locationService)
+
+        // Inicializar el lanzador de permiso
+        permisoUbicacionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (isGranted) {
+                obtenerMaxSpeed()
+            } else {
+                Toast.makeText(this, "Permiso de ubicación denegado", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Solicitar permisos de ubicación
+        solicitarPermisos()
+
+        startMaxSpeedLoop()
     }
+
+    private fun startMaxSpeedLoop() {
+        job = CoroutineScope(Dispatchers.IO).launch {
+            while (isActive) { // El bucle continuará mientras la coroutine esté activa
+                obtenerMaxSpeed() // Realiza la consulta
+                delay(3000) // Espera 3 segundos
+            }
+        }
+    }
+
+    private fun solicitarPermisos() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            permisoUbicacionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        } else {
+            obtenerMaxSpeed()
+        }
+    }
+
+    private fun obtenerMaxSpeed() {
+        openStreetMapService.obtenerMaxSpeed(7) { resultado ->
+            if (resultado != null) {
+                try {
+                    // Convierte el resultado a un objeto JSON
+                    val jsonObject = JSONObject(resultado)
+                    val elementsArray = jsonObject.getJSONArray("elements")
+
+                    // Asegúrate de que hay elementos en el array
+                    if (elementsArray.length() > 0) {
+                        val firstElement = elementsArray.getJSONObject(0)
+                        val tagsObject = firstElement.getJSONObject("tags")
+
+                        // Extrae el valor de maxspeed
+                        maxSpeedValue = tagsObject.getString("maxspeed")
+
+                        // Log para verificar
+                        Log.d("MainActivity", "Velocidad máxima de la vía: $maxSpeedValue")
+
+                        // Actualiza la UI en el hilo principal
+                        runOnUiThread {
+                            maxSpeed_display.text = maxSpeedValue ?: "N/A" // Manejo de nulos
+                        }
+                    } else {
+                        Log.d("MainActivity", "No se encontraron elementos en la respuesta.")
+                    }
+                } catch (e: Exception) {
+                    Log.e("MainActivity", "Error al parsear la respuesta: ${e.message}")
+                }
+            } else {
+                Log.d("MainActivity", "La respuesta fue nula.")
+            }
+        }
+    }
+
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.menu, menu)
@@ -106,9 +194,15 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.bt_connect -> {
-                startActivityForResult(Intent(this@MainActivity, BluetoothActivity::class.java), 1)
+                startActivityForResult(
+                    Intent(
+                        this@MainActivity,
+                        BluetoothActivity::class.java
+                    ), 1
+                )
                 return true
             }
+
             R.id.rec -> {
                 if (!log) {
                     menu?.findItem(R.id.rec)?.title = "Stop logging"
@@ -125,7 +219,11 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                 } else {
                     menu?.findItem(R.id.rec)?.title = "Start logging"
                     log = false
-                    Toast.makeText(this, "Stop logging\nFile saved in ${file.path}.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this,
+                        "Stop logging\nFile saved in ${file.path}.",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             }
         }
@@ -224,12 +322,9 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
             }
         }
 
-        if (oilRet != lastOilValue) {
-            lastOilValue = oilRet
-            withContext(Dispatchers.Main) {
-                oil_temp_display.text = oilRet
-            }
-        }
+
+        maxSpeed_display.text = maxSpeedValue
+
 
         if (engineLoadRet != lastEngineLoad) {
             lastEngineLoad = engineLoadRet
@@ -245,6 +340,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                     (System.currentTimeMillis() / 1000).toString(),
                     rpmRet,
                     speedRet,
+                    maxSpeedValue ?: "N/A",
                     coolantRet,
                     oilRet,
                     engineLoadRet,
@@ -254,7 +350,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                     accelX,
                     accelY,
                     accelZ,
-                    touchCount.toString()
+                    touchCount.toString(),
                 )
             )
         }
@@ -275,6 +371,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                         event.values[2]
                     )
                 }
+
                 Sensor.TYPE_ACCELEROMETER -> {
                     lastAccelX = event.values[0].toString()
                     lastAccelY = event.values[1].toString()
@@ -366,16 +463,20 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         RPM_display.text = getString(R.string.default_display)
         speed_display.text = getString(R.string.default_display)
         coolant_display.text = getString(R.string.default_display)
-        oil_temp_display.text = getString(R.string.default_display)
+        maxSpeed_display.text = getString(R.string.default_display)
         engine_load_display.text = getString(R.string.default_display)
-        gyro_display.text =getString(R.string.default_display)
+        gyro_display.text = getString(R.string.default_display)
         accel_display.text = getString(R.string.default_display)
     }
 
     override fun onResume() {
         super.onResume()
         sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_NORMAL)
-        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL)
+        sensorManager.registerListener(
+            this,
+            accelerometer,
+            SensorManager.SENSOR_DELAY_NORMAL
+        )
     }
 
     override fun onPause() {
@@ -398,3 +499,4 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         var lastAccelZ = ""
     }
 }
+
