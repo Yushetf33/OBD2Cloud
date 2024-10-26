@@ -26,6 +26,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.location.LocationServices
 import com.google.android.material.appbar.MaterialToolbar
 import kotlinx.coroutines.CoroutineScope
@@ -131,7 +132,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     }
 
     private fun startMaxSpeedLoop() {
-        job = CoroutineScope(Dispatchers.IO).launch {
+        lifecycleScope.launch(Dispatchers.IO) {
             while (isActive) { // El bucle continuará mientras la coroutine esté activa
                 obtenerMaxSpeed() // Realiza la consulta
                 delay(3000) // Espera 3 segundos
