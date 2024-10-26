@@ -27,7 +27,6 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.lifecycleScope
-import com.google.android.gms.location.LocationServices
 import com.google.android.material.appbar.MaterialToolbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -39,6 +38,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.util.logging.Handler
+import org.json.JSONException
+
 
 class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListener {
     var menu: Menu? = null
@@ -154,39 +155,93 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     }
 
     private fun obtenerMaxSpeed() {
-        openStreetMapService.obtenerMaxSpeed(66) { resultado ->
-            if (resultado != null) {
-                try {
-                    // Convierte el resultado a un objeto JSON
-                    val jsonObject = JSONObject(resultado)
-                    val elementsArray = jsonObject.getJSONArray("elements")
+        // Crea una instancia de LocationService
+        val locationService = LocationService(this)
 
-                    // Asegúrate de que hay elementos en el array
-                    if (elementsArray.length() > 0) {
-                        val firstElement = elementsArray.getJSONObject(0)
-                        val tagsObject = firstElement.getJSONObject("tags")
+        // Obtén la ubicación actual
+        locationService.obtenerUbicacionActual { location ->
+            if (location != null) {
+                // Aquí tienes la latitud y longitud
+                val currentLatitude = location.latitude
+                val currentLongitude = location.longitude
 
-                        // Extrae el valor de maxspeed
-                        maxSpeedValue = tagsObject.getString("maxspeed")
+                // Ahora realiza la solicitud a OpenStreetMap
+                openStreetMapService.obtenerMaxSpeed(130) { resultado ->
+                    if (resultado != null) {
+                        try {
+                            // Convierte el resultado a un objeto JSON
+                            val jsonObject = JSONObject(resultado)
+                            val elementsArray = jsonObject.getJSONArray("elements")
 
-                        // Log para verificar
-                        Log.d("MainActivity", "Velocidad máxima de la vía: $maxSpeedValue")
+                            // Asegúrate de que hay elementos en el array
+                            if (elementsArray.length() > 0) {
+                                var maxSpeedValue: String? = null
+                                var minDistance: Double = Double.MAX_VALUE
 
-                        // Actualiza la UI en el hilo principal
-                        runOnUiThread {
-                            maxSpeed_display.text = maxSpeedValue ?: "N/A" // Manejo de nulos
+                                for (i in 0 until elementsArray.length()) {
+                                    val element = elementsArray.getJSONObject(i)
+                                    val tagsObject = element.optJSONObject("tags") // Usar optJSONObject para evitar excepciones
+
+                                    // Verifica si tiene el atributo maxspeed
+                                    if (tagsObject != null && tagsObject.has("maxspeed")) {
+                                        // Obtiene la carretera y su ubicación
+                                        val centerObject = element.getJSONObject("center") // Obtener el objeto "center"
+                                        val roadLatitude = centerObject.getDouble("lat") // Obtener la latitud
+                                        val roadLongitude = centerObject.getDouble("lon") // Obtener la longitud
+
+                                        // Calcula la distancia entre la carretera y la ubicación actual
+                                        val distance = calcularDistancia(currentLatitude, currentLongitude, roadLatitude, roadLongitude)
+
+                                        // Si es la carretera más cercana, guarda el valor de maxspeed
+                                        if (distance < minDistance) {
+                                            minDistance = distance
+                                            maxSpeedValue = tagsObject.getString("maxspeed")
+                                        }
+                                    }
+                                }
+
+                                // Log para verificar
+                                if (maxSpeedValue != null) {
+                                    Log.d("MainActivity", "Velocidad máxima de la vía más cercana: $maxSpeedValue")
+                                } else {
+                                    Log.d("MainActivity", "No se encontraron carreteras con velocidad máxima.")
+                                }
+
+                                // Actualiza la UI en el hilo principal
+                                runOnUiThread {
+                                    maxSpeed_display.text = maxSpeedValue ?: "N/A" // Manejo de nulos
+                                }
+                            } else {
+                                Log.d("MainActivity", "No se encontraron elementos en la respuesta.")
+                            }
+                        } catch (e: JSONException) {
+                            Log.e("MainActivity", "Error al parsear la respuesta JSON: ${e.message}")
+                        } catch (e: Exception) {
+                            Log.e("MainActivity", "Error inesperado: ${e.message}")
                         }
                     } else {
-                        Log.d("MainActivity", "No se encontraron elementos en la respuesta.")
+                        Log.d("MainActivity", "La respuesta fue nula.")
                     }
-                } catch (e: Exception) {
-                    Log.e("MainActivity", "Error al parsear la respuesta: ${e.message}")
                 }
             } else {
-                Log.d("MainActivity", "La respuesta fue nula.")
+                Log.d("MainActivity", "No se pudo obtener la ubicación actual.")
             }
         }
     }
+
+    // Método para calcular la distancia entre dos puntos (latitud, longitud)
+    private fun calcularDistancia(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val radius = 6371 // Radio de la Tierra en kilómetros
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2)
+        val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+        return radius * c // Distancia en kilómetros
+    }
+
+
 
 
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
