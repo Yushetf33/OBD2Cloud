@@ -147,45 +147,40 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     }
 
     private fun obtenerMaxSpeed() {
-        // Crea una instancia de LocationService
         Log.d("MainActivity", "obtenerMaxSpeed llamada")
         val locationService = LocationService(this)
 
         // Obtén la ubicación actual
         locationService.obtenerUbicacionActual { location ->
             if (location != null) {
-                // Aquí tienes la latitud y longitud
                 val currentLatitude = location.latitude
                 val currentLongitude = location.longitude
 
                 // Ahora realiza la solicitud a OpenStreetMap
-                openStreetMapService.obtenerMaxSpeed(130) { resultado ->
+                openStreetMapService.obtenerMaxSpeed(75) { resultado -> // Ajusta el radio según sea necesario
                     if (resultado != null) {
                         try {
-                            // Convierte el resultado a un objeto JSON
                             val jsonObject = JSONObject(resultado)
                             val elementsArray = jsonObject.getJSONArray("elements")
 
-                            // Asegúrate de que hay elementos en el array
+                            // Verifica que haya elementos
                             if (elementsArray.length() > 0) {
                                 var maxSpeedValue: String? = null
                                 var minDistance: Double = Double.MAX_VALUE
 
                                 for (i in 0 until elementsArray.length()) {
                                     val element = elementsArray.getJSONObject(i)
-                                    val tagsObject = element.optJSONObject("tags") // Usar optJSONObject para evitar excepciones
+                                    val tagsObject = element.optJSONObject("tags")
 
-                                    // Verifica si tiene el atributo maxspeed
                                     if (tagsObject != null && tagsObject.has("maxspeed")) {
-                                        // Obtiene la carretera y su ubicación
-                                        val centerObject = element.getJSONObject("center") // Obtener el objeto "center"
-                                        val roadLatitude = centerObject.getDouble("lat") // Obtener la latitud
-                                        val roadLongitude = centerObject.getDouble("lon") // Obtener la longitud
+                                        val centerObject = element.getJSONObject("center")
+                                        val roadLatitude = centerObject.getDouble("lat")
+                                        val roadLongitude = centerObject.getDouble("lon")
 
-                                        // Calcula la distancia entre la carretera y la ubicación actual
+                                        // Calcula la distancia
                                         val distance = calcularDistancia(currentLatitude, currentLongitude, roadLatitude, roadLongitude)
 
-                                        // Si es la carretera más cercana, guarda el valor de maxspeed
+                                        // Si es la carretera más cercana
                                         if (distance < minDistance) {
                                             minDistance = distance
                                             maxSpeedValue = tagsObject.getString("maxspeed")
@@ -193,24 +188,16 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                                     }
                                 }
 
-                                // Log para verificar
-                                if (maxSpeedValue != null) {
-                                    Log.d("MainActivity", "Velocidad máxima de la vía más cercana: $maxSpeedValue")
-                                } else {
-                                    Log.d("MainActivity", "No se encontraron carreteras con velocidad máxima.")
-                                }
-
                                 // Actualiza la UI en el hilo principal
                                 runOnUiThread {
-                                    maxSpeed_display.text = maxSpeedValue ?: "N/A" // Manejo de nulos
+                                    maxSpeed_display.text = maxSpeedValue ?: "N/A"
+                                    Log.d("MainActivity", "Velocidad máxima: $maxSpeedValue")
                                 }
                             } else {
                                 Log.d("MainActivity", "No se encontraron elementos en la respuesta.")
                             }
                         } catch (e: JSONException) {
                             Log.e("MainActivity", "Error al parsear la respuesta JSON: ${e.message}")
-                        } catch (e: Exception) {
-                            Log.e("MainActivity", "Error inesperado: ${e.message}")
                         }
                     } else {
                         Log.d("MainActivity", "La respuesta fue nula.")
@@ -221,6 +208,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
             }
         }
     }
+
 
     override fun onStart() {
         super.onStart()
