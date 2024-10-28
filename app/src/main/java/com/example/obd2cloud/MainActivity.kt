@@ -78,7 +78,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     private val handler = android.os.Handler(Looper.getMainLooper())
     private lateinit var runnable: Runnable
 
-    var velocidadActual: Float? = null
+    private var velocidadActual: Float? = null
+    private var velocidadAnterior: String? = null // Variable para almacenar la velocidad anterior
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -198,8 +199,14 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
 
                             // Actualiza la UI en el hilo principal
                             runOnUiThread {
-                                maxSpeed_display.text = mostFrequentMaxSpeed ?: "N/A"
-                                Log.d("MainActivity", "Velocidad máxima: $mostFrequentMaxSpeed")
+                                if (mostFrequentMaxSpeed != null) {
+                                    velocidadAnterior = mostFrequentMaxSpeed // Actualiza la velocidad anterior
+                                    maxSpeed_display.text = mostFrequentMaxSpeed
+                                    Log.d("MainActivity", "Velocidad máxima: $mostFrequentMaxSpeed")
+                                } else {
+                                    maxSpeed_display.text = velocidadAnterior ?: "N/A" // Muestra la velocidad anterior si no hay resultados
+                                    Log.d("MainActivity", "No se encontraron valores de maxspeed. Mostrando velocidad anterior: ${velocidadAnterior ?: "N/A"}")
+                                }
                             }
 
                         } catch (e: JSONException) {
@@ -207,6 +214,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                         }
                     } else {
                         Log.d("MainActivity", "La respuesta fue nula.")
+                        // Muestra la velocidad anterior si la respuesta es nula
+                        runOnUiThread {
+                            maxSpeed_display.text = velocidadAnterior ?: "N/A"
+                        }
                     }
                 }
             } else {
