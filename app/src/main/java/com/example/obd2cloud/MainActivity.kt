@@ -78,6 +78,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     private val handler = android.os.Handler(Looper.getMainLooper())
     private lateinit var runnable: Runnable
 
+    var velocidadActual: Float? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -146,6 +148,15 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         }
     }
 
+    private fun calcularRadioPorVelocidad(velocidad: Float?): Int {
+        return when {
+            velocidad == null -> 90 // Radio por defecto si la velocidad no está disponible
+            velocidad < 20 -> 50    // Radio pequeño para bajas velocidades
+            velocidad < 50 -> 100   // Radio medio para velocidad moderada
+            else -> 150             // Radio grande para altas velocidades
+        }
+    }
+
     private fun obtenerMaxSpeed() {
         Log.d("MainActivity", "obtenerMaxSpeed llamada")
         val locationService = LocationService(this)
@@ -156,8 +167,9 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                 val currentLatitude = location.latitude
                 val currentLongitude = location.longitude
 
+                val radioDinamico = calcularRadioPorVelocidad(velocidadActual)
                 // Ahora realiza la solicitud a OpenStreetMap
-                openStreetMapService.obtenerMaxSpeed(75) { resultado -> // Ajusta el radio según sea necesario
+                openStreetMapService.obtenerMaxSpeed(90) { resultado -> // Ajusta el radio según sea necesario
                     if (resultado != null) {
                         try {
                             val jsonObject = JSONObject(resultado)
@@ -363,6 +375,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         val oilRet = CoroutineScope(Dispatchers.IO).async { oiltemp() }.await()
         val engineLoadRet = CoroutineScope(Dispatchers.IO).async { engineLoad() }.await()
 
+        velocidadActual = speedRet.toFloatOrNull()
         // Obtén los valores del giroscopio y acelerómetro
         val gyroX = lastGyroX
         val gyroY = lastGyroY
