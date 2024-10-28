@@ -151,9 +151,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     private fun calcularRadioPorVelocidad(velocidad: Float?): Int {
         return when {
             velocidad == null -> 90 // Radio por defecto si la velocidad no está disponible
-            velocidad < 20 -> 50    // Radio pequeño para bajas velocidades
-            velocidad < 50 -> 100   // Radio medio para velocidad moderada
-            else -> 150             // Radio grande para altas velocidades
+            velocidad < 30 -> 50    // Radio pequeño para bajas velocidades
+            velocidad < 60 -> 80   // Radio medio para velocidad moderada
+            velocidad < 90 -> 60
+            else -> 300             // Radio grande para altas velocidades
         }
     }
 
@@ -168,46 +169,39 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                 val currentLongitude = location.longitude
 
                 val radioDinamico = calcularRadioPorVelocidad(velocidadActual)
-                // Ahora realiza la solicitud a OpenStreetMap
-                openStreetMapService.obtenerMaxSpeed(90) { resultado -> // Ajusta el radio según sea necesario
+
+                // Realiza la solicitud a OpenStreetMap con el radio ajustado
+                openStreetMapService.obtenerMaxSpeed(radioDinamico) { resultado ->
                     if (resultado != null) {
+                        // Imprime la respuesta de la API en el log
+                        Log.d("MainActivity", "Respuesta de la API: $resultado")
+
                         try {
                             val jsonObject = JSONObject(resultado)
                             val elementsArray = jsonObject.getJSONArray("elements")
 
-                            // Verifica que haya elementos
-                            if (elementsArray.length() > 0) {
-                                var maxSpeedValue: String? = null
-                                var minDistance: Double = Double.MAX_VALUE
+                            // Lista para almacenar los valores de maxspeed encontrados
+                            val maxSpeedValues = mutableListOf<String>()
 
-                                for (i in 0 until elementsArray.length()) {
-                                    val element = elementsArray.getJSONObject(i)
-                                    val tagsObject = element.optJSONObject("tags")
+                            for (i in 0 until elementsArray.length()) {
+                                val element = elementsArray.getJSONObject(i)
+                                val tagsObject = element.optJSONObject("tags")
 
-                                    if (tagsObject != null && tagsObject.has("maxspeed")) {
-                                        val centerObject = element.getJSONObject("center")
-                                        val roadLatitude = centerObject.getDouble("lat")
-                                        val roadLongitude = centerObject.getDouble("lon")
-
-                                        // Calcula la distancia
-                                        val distance = calcularDistancia(currentLatitude, currentLongitude, roadLatitude, roadLongitude)
-
-                                        // Si es la carretera más cercana
-                                        if (distance < minDistance) {
-                                            minDistance = distance
-                                            maxSpeedValue = tagsObject.getString("maxspeed")
-                                        }
-                                    }
+                                if (tagsObject != null && tagsObject.has("maxspeed")) {
+                                    val maxSpeedValue = tagsObject.getString("maxspeed")
+                                    maxSpeedValues.add(maxSpeedValue)
                                 }
-
-                                // Actualiza la UI en el hilo principal
-                                runOnUiThread {
-                                    maxSpeed_display.text = maxSpeedValue ?: "N/A"
-                                    Log.d("MainActivity", "Velocidad máxima: $maxSpeedValue")
-                                }
-                            } else {
-                                Log.d("MainActivity", "No se encontraron elementos en la respuesta.")
                             }
+
+                            // Encuentra el valor de maxspeed más frecuente
+                            val mostFrequentMaxSpeed = maxSpeedValues.groupingBy { it }.eachCount().maxByOrNull { it.value }?.key
+
+                            // Actualiza la UI en el hilo principal
+                            runOnUiThread {
+                                maxSpeed_display.text = mostFrequentMaxSpeed ?: "N/A"
+                                Log.d("MainActivity", "Velocidad máxima: $mostFrequentMaxSpeed")
+                            }
+
                         } catch (e: JSONException) {
                             Log.e("MainActivity", "Error al parsear la respuesta JSON: ${e.message}")
                         }
@@ -220,6 +214,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
             }
         }
     }
+
+
 
 
     override fun onStart() {
@@ -244,18 +240,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
 
     private fun stopUpdatingMaxSpeed() {
         handler.removeCallbacks(runnable) // Detiene el bucle
-    }
-
-    // Método para calcular la distancia entre dos puntos (latitud, longitud)
-    private fun calcularDistancia(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-        val radius = 6371 // Radio de la Tierra en kilómetros
-        val dLat = Math.toRadians(lat2 - lat1)
-        val dLon = Math.toRadians(lon2 - lon1)
-        val a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
-                Math.sin(dLon / 2) * Math.sin(dLon / 2)
-        val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-        return radius * c // Distancia en kilómetros
     }
 
     private fun solicitarPermisos() {
