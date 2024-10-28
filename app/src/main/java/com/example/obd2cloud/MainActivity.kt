@@ -151,13 +151,14 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
 
     private fun calcularRadioPorVelocidad(velocidad: Float?): Int {
         return when {
-            velocidad == null -> 90 // Radio por defecto si la velocidad no está disponible
-            velocidad < 30 -> 50    // Radio pequeño para bajas velocidades
-            velocidad < 60 -> 80   // Radio medio para velocidad moderada
-            velocidad < 90 -> 60
-            else -> 300             // Radio grande para altas velocidades
+            velocidad == null -> 75  // Radio por defecto
+            velocidad < 20 -> 30     // Radio menor para velocidades bajas (ej., zonas urbanas)
+            velocidad < 50 -> 50     // Radio para velocidad moderada
+            velocidad < 80 -> 100    // Aumenta el radio para carreteras principales
+            else -> 150              // Máximo radio para carreteras y autopistas
         }
     }
+
 
     private fun obtenerMaxSpeed() {
         Log.d("MainActivity", "obtenerMaxSpeed llamada")
@@ -371,6 +372,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         val engineLoadRet = CoroutineScope(Dispatchers.IO).async { engineLoad() }.await()
 
         velocidadActual = speedRet.toFloatOrNull()
+        val maxSpeed = maxSpeedValue ?: "N/A"
         // Obtén los valores del giroscopio y acelerómetro
         val gyroX = lastGyroX
         val gyroY = lastGyroY
@@ -419,7 +421,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                     (System.currentTimeMillis() / 1000).toString(),
                     rpmRet,
                     speedRet,
-                    maxSpeedValue ?: "N/A",
+                    maxSpeed,
                     coolantRet,
                     oilRet,
                     engineLoadRet,
