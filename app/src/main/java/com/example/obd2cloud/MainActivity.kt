@@ -66,8 +66,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     private var job: Job? = null
 
     private lateinit var sensorManager: SensorManager
-    private lateinit var gyroscope: Sensor
-    private lateinit var accelerometer: Sensor
+    private var gyroscope: Sensor? = null
+    private var accelerometer: Sensor? = null
 
     private var touchCount: Int = 0
 
@@ -134,7 +134,15 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         solicitarPermisos()
 
         startMaxSpeedLoop()
+
+        // Agregar el botón para abrir CameraPreviewActivity
+        val buttonOpenCameraPreview: Button = findViewById(R.id.button_open_camera_preview)
+        buttonOpenCameraPreview.setOnClickListener {
+            val intent = Intent(this, CameraPreviewActivity::class.java) // Cambia a CameraPreviewActivity
+            startActivity(intent)
+        }
     }
+
 
     private fun startMaxSpeedLoop() {
         lifecycleScope.launch(Dispatchers.IO) {
