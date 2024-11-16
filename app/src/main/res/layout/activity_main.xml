@@ -28,7 +28,7 @@
         app:layout_constraintTop_toBottomOf="@+id/toolbar" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/frameLayoutIntakeAir"
+        android:id="@+id/frameLayoutFuelTrim"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginStart="16dp"
@@ -39,20 +39,20 @@
         app:layout_constraintBottom_toTopOf="@+id/stop"
         app:layout_constraintEnd_toStartOf="@+id/frameLayoutAmbientTemperature"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/frameLayoutCoolantTemperature">
+        app:layout_constraintTop_toBottomOf="@+id/frameLayoutThrottlePosition">
 
         <TextView
-            android:id="@+id/intake_air_unit"
+            android:id="@+id/fuel_display_unit"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_marginTop="2dp"
             android:layout_marginEnd="8dp"
             android:layout_marginBottom="2dp"
-            android:text="Intake Air (C°)"
+            android:text="Fuel Trim (Short)(%)"
             android:textAlignment="center"
             android:typeface="monospace"
-            app:layout_constraintBottom_toTopOf="@+id/intake_air_display"
+            app:layout_constraintBottom_toTopOf="@+id/fuel_display"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.51"
             app:layout_constraintStart_toStartOf="parent"
@@ -60,7 +60,7 @@
             app:layout_constraintVertical_bias="0.421" />
 
         <TextView
-            android:id="@+id/intake_air_display"
+            android:id="@+id/fuel_display"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="2dp"
@@ -99,7 +99,7 @@
         android:paddingEnd="2dp"
         app:layout_constraintBottom_toTopOf="@+id/stop"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/frameLayoutIntakeAir"
+        app:layout_constraintStart_toEndOf="@+id/frameLayoutFuelTrim"
         app:layout_constraintTop_toBottomOf="@+id/frameLayoutMaxSpeed">
 
         <TextView
@@ -158,7 +158,7 @@
         android:layout_marginBottom="8dp"
         android:paddingStart="2dp"
         android:paddingEnd="2dp"
-        app:layout_constraintBottom_toTopOf="@+id/frameLayoutCoolantTemperature"
+        app:layout_constraintBottom_toTopOf="@+id/frameLayoutThrottlePosition"
         app:layout_constraintEnd_toStartOf="@+id/frameLayoutRPM"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/connection_indicator">
@@ -273,7 +273,7 @@
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/frameLayoutCoolantTemperature"
+        android:id="@+id/frameLayoutThrottlePosition"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginStart="16dp"
@@ -281,23 +281,23 @@
         android:layout_marginBottom="8dp"
         android:paddingStart="2dp"
         android:paddingEnd="2dp"
-        app:layout_constraintBottom_toTopOf="@+id/frameLayoutIntakeAir"
+        app:layout_constraintBottom_toTopOf="@+id/frameLayoutFuelTrim"
         app:layout_constraintEnd_toStartOf="@+id/frameLayoutMaxSpeed"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/frameLayoutSpeed">
 
         <TextView
-            android:id="@+id/coolant_unit"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:id="@+id/throttle_unit"
+            android:layout_width="178dp"
+            android:layout_height="24dp"
             android:layout_marginStart="8dp"
             android:layout_marginTop="2dp"
             android:layout_marginEnd="8dp"
             android:layout_marginBottom="2dp"
-            android:text="Engine Coolant (C°)"
+            android:text="Throttle Position (%)"
             android:textAlignment="center"
             android:typeface="monospace"
-            app:layout_constraintBottom_toTopOf="@+id/coolant_display"
+            app:layout_constraintBottom_toTopOf="@+id/throttle_display"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.51"
             app:layout_constraintStart_toStartOf="parent"
@@ -305,7 +305,7 @@
             app:layout_constraintVertical_bias="0.421" />
 
         <TextView
-            android:id="@+id/coolant_display"
+            android:id="@+id/throttle_display"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="2dp"
@@ -345,7 +345,7 @@
         android:paddingEnd="2dp"
         app:layout_constraintBottom_toTopOf="@+id/frameLayoutAmbientTemperature"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/frameLayoutCoolantTemperature"
+        app:layout_constraintStart_toEndOf="@+id/frameLayoutThrottlePosition"
         app:layout_constraintTop_toBottomOf="@+id/frameLayoutRPM">
 
         <TextView
@@ -413,9 +413,9 @@
 
     <Button
         android:id="@+id/stop"
-        android:layout_width="179dp"
-        android:layout_height="45dp"
-        android:layout_marginStart="16dp"
+        android:layout_width="367dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="14dp"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="16dp"
         android:background="#FF5252"
@@ -447,17 +447,6 @@
         android:layout_marginBottom="96dp"
         android:text="Gyroscope Values"
         android:textSize="16sp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <Button
-        android:id="@+id/button_open_camera_preview"
-        android:layout_width="187dp"
-        android:layout_height="52dp"
-        android:layout_gravity="center"
-        android:layout_marginStart="16dp"
-        android:layout_marginBottom="17dp"
-        android:text="Abrir Vista Previa de Cámara"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 

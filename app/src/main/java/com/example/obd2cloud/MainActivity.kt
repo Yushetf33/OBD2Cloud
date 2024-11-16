@@ -38,7 +38,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import java.util.logging.Handler
 import org.json.JSONException
 
 
@@ -48,11 +47,13 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     private lateinit var connection_status: TextView
     private lateinit var speed_display: TextView
     private lateinit var RPM_display: TextView
-    private lateinit var coolant_display: TextView
+    private lateinit var throttle_display: TextView
     private lateinit var maxSpeed_display: TextView
     private lateinit var engine_load_display: TextView
     private lateinit var gyro_display: TextView
     private lateinit var accel_display: TextView
+    private lateinit var fuel_display: TextView
+
 
     private var address: String = ""
     private lateinit var mBluetoothAdapter: BluetoothAdapter
@@ -92,11 +93,12 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         connection_status = findViewById(R.id.connection_indicator)
         speed_display = findViewById(R.id.speed_display)
         RPM_display = findViewById(R.id.RPM_display)
-        coolant_display = findViewById(R.id.coolant_display)
+        fuel_display = findViewById(R.id.fuel_display)
+        throttle_display = findViewById(R.id.throttle_display)
         maxSpeed_display = findViewById(R.id.maxSpeed_display)
         engine_load_display = findViewById(R.id.engine_load_display)
         gyro_display = findViewById(R.id.gyro_display)
-        accel_display = findViewById(R.id.accel_display)  // Inicializar la variable
+        accel_display = findViewById(R.id.accel_display)
 
         stop = findViewById(R.id.stop)
         stop.setOnClickListener(this)
@@ -132,15 +134,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
 
         // Solicitar permisos de ubicación
         solicitarPermisos()
-
         startMaxSpeedLoop()
-
-        // Agregar el botón para abrir CameraPreviewActivity
-        val buttonOpenCameraPreview: Button = findViewById(R.id.button_open_camera_preview)
-        buttonOpenCameraPreview.setOnClickListener {
-            val intent = Intent(this, CameraPreviewActivity::class.java) // Cambia a CameraPreviewActivity
-            startActivity(intent)
-        }
     }
 
 
@@ -184,7 +178,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                 openStreetMapService.obtenerMaxSpeed(radioDinamico) { resultado ->
                     if (resultado != null) {
                         // Imprime la respuesta de la API en el log
-                        Log.d("MainActivity", "Respuesta de la API: $resultado")
+                        //Log.d("MainActivity", "Respuesta de la API: $resultado")
 
                         try {
                             val jsonObject = JSONObject(resultado)
@@ -234,8 +228,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
             }
         }
     }
-
-
 
 
     override fun onStart() {
@@ -374,13 +366,14 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
 
     private suspend fun updateUI() {
         val rpmRet = CoroutineScope(Dispatchers.IO).async { RPM() }.await()
+        val fuelRet = CoroutineScope(Dispatchers.IO).async { fuelTrim() }.await()
         val speedRet = CoroutineScope(Dispatchers.IO).async { speed() }.await()
-        val coolantRet = CoroutineScope(Dispatchers.IO).async { coolant() }.await()
-        val oilRet = CoroutineScope(Dispatchers.IO).async { oiltemp() }.await()
+        val throttleRet = CoroutineScope(Dispatchers.IO).async { throttle() }.await()
         val engineLoadRet = CoroutineScope(Dispatchers.IO).async { engineLoad() }.await()
 
         velocidadActual = speedRet.toFloatOrNull()
         val maxSpeed = maxSpeedValue ?: "N/A"
+
         // Obtén los valores del giroscopio y acelerómetro
         val gyroX = lastGyroX
         val gyroY = lastGyroY
@@ -397,6 +390,13 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
             }
         }
 
+        if (fuelRet != lastFuelValue) {
+            lastFuelValue = fuelRet
+            withContext(Dispatchers.Main) {
+                fuel_display.text = fuelRet
+            }
+        }
+
         if (speedRet != lastSpeedValue) {
             lastSpeedValue = speedRet
             withContext(Dispatchers.Main) {
@@ -404,10 +404,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
             }
         }
 
-        if (coolantRet != lastCoolantValue) {
-            lastCoolantValue = coolantRet
+        if (throttleRet != lastThrottleValue) {
+            lastThrottleValue = throttleRet
             withContext(Dispatchers.Main) {
-                coolant_display.text = coolantRet
+                throttle_display.text = throttleRet
             }
         }
 
@@ -430,8 +430,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                     rpmRet,
                     speedRet,
                     maxSpeed,
-                    coolantRet,
-                    oilRet,
+                    throttleRet,
+                    fuelRet,
                     engineLoadRet,
                     gyroX,
                     gyroY,
@@ -509,21 +509,21 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         }
     }
 
+    private suspend fun fuelTrim(): String {
+        return withContext(Dispatchers.IO) {
+            bluetoothClient.askFuelTrimShort()
+        }
+    }
+
     private suspend fun speed(): String {
         return withContext(Dispatchers.IO) {
             bluetoothClient.askSpeed()
         }
     }
 
-    private suspend fun coolant(): String {
+    private suspend fun throttle(): String {
         return withContext(Dispatchers.IO) {
-            bluetoothClient.askCoolantTemp()
-        }
-    }
-
-    private suspend fun oiltemp(): String {
-        return withContext(Dispatchers.IO) {
-            bluetoothClient.askOilTemp()
+            bluetoothClient.askThrottlePosition()
         }
     }
 
@@ -551,8 +551,9 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     private fun resetDisplays() {
         RPM_display.text = getString(R.string.default_display)
         speed_display.text = getString(R.string.default_display)
-        coolant_display.text = getString(R.string.default_display)
+        throttle_display.text = getString(R.string.default_display)
         maxSpeed_display.text = getString(R.string.default_display)
+        fuel_display.text = getString(R.string.default_display)
         engine_load_display.text = getString(R.string.default_display)
         gyro_display.text = getString(R.string.default_display)
         accel_display.text = getString(R.string.default_display)
@@ -576,8 +577,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     companion object {
         var lastRPMValue = ""
         var lastSpeedValue = ""
-        var lastCoolantValue = ""
-        var lastOilValue = ""
+        var lastThrottleValue = ""
+        var lastFuelValue = ""
         var lastEngineLoad = ""
 
         var lastGyroX = ""

@@ -5,20 +5,20 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import android.util.Log
 import com.github.eltonvs.obd.command.AdaptiveTimingMode
-import com.github.eltonvs.obd.command.NoDataException
-import com.github.eltonvs.obd.command.NonNumericResponseException
-import com.github.eltonvs.obd.command.ObdCommand
 import com.github.eltonvs.obd.command.ObdProtocols
-import com.github.eltonvs.obd.command.ObdRawResponse
 import com.github.eltonvs.obd.command.ObdResponse
 import com.github.eltonvs.obd.command.Switcher
 import com.github.eltonvs.obd.command.at.*
 import com.github.eltonvs.obd.command.engine.LoadCommand
+import com.github.eltonvs.obd.command.engine.MassAirFlowCommand
 import com.github.eltonvs.obd.command.engine.RPMCommand
+import com.github.eltonvs.obd.command.engine.RelativeThrottlePositionCommand
 import com.github.eltonvs.obd.command.engine.SpeedCommand
-import com.github.eltonvs.obd.command.temperature.AirIntakeTemperatureCommand
-import com.github.eltonvs.obd.command.temperature.EngineCoolantTemperatureCommand
-import com.github.eltonvs.obd.command.temperature.OilTemperatureCommand
+import com.github.eltonvs.obd.command.engine.ThrottlePositionCommand
+import com.github.eltonvs.obd.command.fuel.FuelConsumptionRateCommand
+import com.github.eltonvs.obd.command.fuel.FuelLevelCommand
+import com.github.eltonvs.obd.command.fuel.FuelTrimCommand
+import com.github.eltonvs.obd.command.pressure.FuelPressureCommand
 import com.github.eltonvs.obd.connection.ObdDeviceConnection
 import kotlinx.coroutines.*
 import java.io.IOException
@@ -76,35 +76,12 @@ class BluetoothClient(private val device: BluetoothDevice) {
         }
     }
 
-    suspend fun askAllData(): Map<String, String> = withContext(Dispatchers.IO) {
-        val results = mutableMapOf<String, String>()
-
-        coroutineScope {
-            val rpmDeferred = async { askRPM() }
-            val speedDeferred = async { askSpeed() }
-            val coolantTempDeferred = async { askCoolantTemp() }
-            val oilTempDeferred = async { askOilTemp() }
-            val intakeTempDeferred = async { askIntakeTemp() }
-            val engineLoadDeferred = async { askEngineLoad() }
-
-            results["RPM"] = rpmDeferred.await()
-            results["Speed"] = speedDeferred.await()
-            results["CoolantTemp"] = coolantTempDeferred.await()
-            results["OilTemp"] = oilTempDeferred.await()
-            results["IntakeTemp"] = intakeTempDeferred.await()
-            results["EngineLoad"] = engineLoadDeferred.await()
-        }
-
-        return@withContext results
-    }
-
     suspend fun askRPM(): String {
         return withContext(Dispatchers.IO) {
             try {
                 clearInputStream()
                 Log.d("OBD", "Sending RPM command")
                 val aux: ObdResponse = obdConnection.run(RPMCommand(), delayTime = 100)
-                Log.d("OBD", "Raw RPM Response: ${aux.rawResponse.value}")
                 if (aux.rawResponse.value.contains("410C")) {
                     Log.d("OBD", "RPM Response: ${aux.formattedValue}")
                     aux.value
@@ -139,61 +116,21 @@ class BluetoothClient(private val device: BluetoothDevice) {
         }
     }
 
-    suspend fun askCoolantTemp(): String {
+    suspend fun askThrottlePosition(): String {
         return withContext(Dispatchers.IO) {
             try {
                 clearInputStream()
-                Log.d("OBD", "Sending Coolant Temperature command")
-                val aux: ObdResponse = obdConnection.run(EngineCoolantTemperatureCommand(), delayTime = 100)
-                if (aux.rawResponse.value.contains("4105")) {
-                    Log.d("OBD", "Coolant Temp Response: ${aux.formattedValue}")
+                Log.d("OBD", "Sending Throttle Position command")
+                val aux: ObdResponse = obdConnection.run(ThrottlePositionCommand(), delayTime = 100)
+                if (aux.rawResponse.value.contains("4111")) {
+                    Log.d("OBD", "Throttle Position Response: ${aux.formattedValue}")
                     aux.value
                 } else {
-                    Log.e("OBD", "Invalid Coolant Temp response: ${aux.rawResponse}")
+                    Log.e("OBD", "Invalid Throttle Position response: ${aux.rawResponse}")
                     "!DATA"
                 }
             } catch (e: Exception) {
-                Log.e("OBD", "Error fetching Coolant Temp", e)
-                "?NaN"
-            }
-        }
-    }
-
-    suspend fun askOilTemp(): String {
-        return withContext(Dispatchers.IO) {
-            try {
-                clearInputStream()
-                Log.d("OBD", "Sending Oil Temperature command")
-                val aux: ObdResponse = obdConnection.run(OilTemperatureCommand(), delayTime = 100)
-                if (aux.rawResponse.value.contains("415C")) {
-                    Log.d("OBD", "Oil Temp Response: ${aux.formattedValue}")
-                    aux.value
-                } else {
-                    Log.e("OBD", "Invalid Oil Temp response: ${aux.rawResponse}")
-                    "!DATA"
-                }
-            } catch (e: Exception) {
-                Log.e("OBD", "Error fetching Oil Temp", e)
-                "?NaN"
-            }
-        }
-    }
-
-    suspend fun askIntakeTemp(): String {
-        return withContext(Dispatchers.IO) {
-            try {
-                clearInputStream()
-                Log.d("OBD", "Sending Air Intake Temperature command")
-                val aux: ObdResponse = obdConnection.run(AirIntakeTemperatureCommand(), delayTime = 100)
-                if (aux.rawResponse.value.contains("410F")) {
-                    Log.d("OBD", "Intake Temp Response: ${aux.formattedValue}")
-                    aux.value
-                } else {
-                    Log.e("OBD", "Invalid Intake Temp response: ${aux.rawResponse}")
-                    "!DATA"
-                }
-            } catch (e: Exception) {
-                Log.e("OBD", "Error fetching Intake Temp", e)
+                Log.e("OBD", "Error fetching Throttle Position", e)
                 "?NaN"
             }
         }
@@ -214,6 +151,28 @@ class BluetoothClient(private val device: BluetoothDevice) {
                 }
             } catch (e: Exception) {
                 Log.e("OBD", "Error fetching Engine Load", e)
+                "?NaN"
+            }
+        }
+    }
+
+    suspend fun askFuelTrimShort(): String {
+        return withContext(Dispatchers.IO) {
+            try {
+                clearInputStream()
+                Log.d("OBD", "Sending Fuel Trim Short command")
+                val aux: ObdResponse = obdConnection.run(FuelTrimCommand(FuelTrimCommand.FuelTrimBank.SHORT_TERM_BANK_1), delayTime = 100)
+                Log.d("OBD", "Raw Fuel Trim Response: ${aux.rawResponse.value}")
+
+                if (aux.rawResponse.value.contains("4106")) {
+                    Log.d("OBD", "Fuel Trim Short Response: ${aux.formattedValue}")
+                    aux.value
+                } else {
+                    Log.e("OBD", "Fuel Trim Short response: ${aux.rawResponse}")
+                    "!DATA"
+                }
+            } catch (e: Exception) {
+                Log.e("OBD", "Error fetching Mass Air Flow", e)
                 "?NaN"
             }
         }
