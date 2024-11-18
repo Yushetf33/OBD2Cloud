@@ -33,12 +33,18 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import org.json.JSONException
+import java.io.File
+import java.io.FileWriter
+import java.io.IOException
+import com.opencsv.CSVWriter
+import kotlinx.coroutines.coroutineScope
 
 
 class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListener {
@@ -66,21 +72,38 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     private var bt: MenuItem? = null
     private var job: Job? = null
 
-    private lateinit var sensorManager: SensorManager
-    private var gyroscope: Sensor? = null
-    private var accelerometer: Sensor? = null
-
-    private var touchCount: Int = 0
-
     private lateinit var locationService: LocationService
     private lateinit var openStreetMapService: OpenStreetMapService
     private lateinit var permisoUbicacionLauncher: ActivityResultLauncher<String>
-    private var maxSpeedValue: String? = null
     private val handler = android.os.Handler(Looper.getMainLooper())
     private lateinit var runnable: Runnable
 
     private var velocidadActual: Float? = null
     private var velocidadAnterior: String? = null // Variable para almacenar la velocidad anterior
+
+    private val metricScopes = mutableListOf<Job>()
+
+    private lateinit var sensorManager: SensorManager
+    private var gyroscope: Sensor? = null
+    private var accelerometer: Sensor? = null
+    private var touchCount: Int = 0
+    private var currentRPM: String = ""
+    private var currentFuelTrim: String = ""
+    private var currentSpeed: String = ""
+    private var currentThrottle: String = ""
+    private var currentEngineLoad: String = ""
+    private var currentMaxSpeed: String = ""
+    private var currentGear: Int? = null // Variable para almacenar la marcha actual
+    private var lastGyroX: String = ""
+    private var lastGyroY: String = ""
+    private var lastGyroZ: String = ""
+    private var lastAccelX: String = ""
+    private var lastAccelY: String = ""
+    private var lastAccelZ: String = ""
+
+    private var csvInitialized = false // Verifica si los encabezados ya se escribieron
+    private var csvFile: File? = null
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -274,16 +297,15 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         when (item.itemId) {
             R.id.bt_connect -> {
                 startActivityForResult(
-                    Intent(
-                        this@MainActivity,
-                        BluetoothActivity::class.java
-                    ), 1
+                    Intent(this@MainActivity, BluetoothActivity::class.java), 1
                 )
                 return true
             }
 
             R.id.rec -> {
                 if (!log) {
+                    Log.d("LOGGING", "Start logging clicked")
+                    Toast.makeText(this, "Starting logging...", Toast.LENGTH_SHORT).show()
                     menu?.findItem(R.id.rec)?.title = "Stop logging"
                     try {
                         file = CsvLog(
@@ -296,6 +318,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                         Toast.makeText(this, "Error: $e", Toast.LENGTH_LONG).show()
                     }
                 } else {
+                    Log.d("LOGGING", "Stop logging clicked")
+                    Toast.makeText(this, "Stopping logging...", Toast.LENGTH_SHORT).show()
                     menu?.findItem(R.id.rec)?.title = "Start logging"
                     log = false
                     Toast.makeText(
@@ -305,8 +329,36 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                     ).show()
                 }
             }
+
         }
         return false
+    }
+
+    private fun createCSVHeader(file: File) {
+        try {
+            val writer = CSVWriter(FileWriter(file, true))
+            val header = arrayOf(
+                "Timestamp",
+                "Touch Count",
+                "RPM",
+                "Speed",
+                "Max Speed",
+                "Throttle",
+                "Fuel Trim",
+                "Engine Load",
+                "Gear",
+                "GyroX",
+                "GyroY",
+                "GyroZ",
+                "AccelX",
+                "AccelY",
+                "AccelZ"
+            )
+            writer.writeNext(header)
+            writer.close()
+        } catch (e: IOException) {
+            Log.e("CSV", "Error creating CSV header: ${e.message}")
+        }
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -357,91 +409,170 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
             }
             job = CoroutineScope(Dispatchers.IO).launch {
                 while (read) {
-                    updateUI()
-                    delay(200)
+                    updateMetricsAndLog()
                 }
             }
         }
     }
 
-    private suspend fun updateUI() {
-        val rpmRet = CoroutineScope(Dispatchers.IO).async { RPM() }.await()
-        val fuelRet = CoroutineScope(Dispatchers.IO).async { fuelTrim() }.await()
-        val speedRet = CoroutineScope(Dispatchers.IO).async { speed() }.await()
-        val throttleRet = CoroutineScope(Dispatchers.IO).async { throttle() }.await()
-        val engineLoadRet = CoroutineScope(Dispatchers.IO).async { engineLoad() }.await()
+    private suspend fun calculateGear(rpm: String, speed: String): Int? {
+        val rpmValue = rpm.toIntOrNull()  // Convertir rpm a Int
+        val speedValue = speed.toFloatOrNull()  // Convertir speed a Float
 
-        velocidadActual = speedRet.toFloatOrNull()
-        val maxSpeed = maxSpeedValue ?: "N/A"
-
-        // Obtén los valores del giroscopio y acelerómetro
-        val gyroX = lastGyroX
-        val gyroY = lastGyroY
-        val gyroZ = lastGyroZ
-        val accelX = lastAccelX
-        val accelY = lastAccelY
-        val accelZ = lastAccelZ
-
-        // Actualiza la UI solo si hay cambios
-        if (rpmRet != lastRPMValue) {
-            lastRPMValue = rpmRet
-            withContext(Dispatchers.Main) {
-                RPM_display.text = rpmRet
-            }
+        // Verificar que las conversiones sean válidas
+        if (rpmValue == null || speedValue == null || speedValue <= 0) {
+            return null // Si alguno es inválido o el vehículo está detenido
         }
 
-        if (fuelRet != lastFuelValue) {
-            lastFuelValue = fuelRet
-            withContext(Dispatchers.Main) {
-                fuel_display.text = fuelRet
+        // Calcular las velocidades estimadas para cada marcha a partir de las RPM
+        val speeds = listOf(
+            rpmValue * 0.0082258415f,
+            rpmValue * 0.01588235263f,
+            rpmValue * 0.022352938f,
+            rpmValue * 0.02941176463f,
+            rpmValue * 0.037058823f,
+            rpmValue * 0.046470587f
+        )
+
+        // Encontrar el valor mínimo de la diferencia entre las velocidades estimadas y la velocidad actual
+        val closestSpeed = speeds.minByOrNull { estimatedSpeed -> kotlin.math.abs(estimatedSpeed - speedValue) }
+
+        // Si encontramos una velocidad más cercana, retornamos el índice (más 1 para la marcha)
+        return closestSpeed?.let { speeds.indexOf(it) + 1 }
+    }
+
+    private suspend fun updateRPM() {
+            val rpm = RPM()
+            Log.d("RPM Update", "New RPM: $rpm, Last RPM: $lastRPMValue") // Log para depurar
+            if (rpm != lastRPMValue) { // Comparar con el valor previo
+                lastRPMValue = rpm
+                currentRPM = rpm
+                withContext(Dispatchers.Main) { // Actualizar la UI en el hilo principal
+                    RPM_display.text = rpm
+                }
             }
-        }
+            //delay(500) // Controlar la frecuencia de actualización
 
-        if (speedRet != lastSpeedValue) {
-            lastSpeedValue = speedRet
-            withContext(Dispatchers.Main) {
-                speed_display.text = speedRet
+    }              //NUEVOS METODOS
+
+    private suspend fun updateFuelTrim() {
+         val fuel = fuelTrim()
+            Log.d("Fuel Trim Update", "New Fuel Trim: $fuel, Last Fuel Trim: $lastFuelValue") // Log para depurar
+            if (fuel != lastFuelValue) {
+                lastFuelValue = fuel
+                currentFuelTrim = fuel
+                withContext(Dispatchers.Main) {
+                    fuel_display.text = fuel
+                }
             }
-        }
+            //delay(500) // Ajusta este valor según la frecuencia necesaria
+    }         //NUEVOS METODOS
 
-        if (throttleRet != lastThrottleValue) {
-            lastThrottleValue = throttleRet
-            withContext(Dispatchers.Main) {
-                throttle_display.text = throttleRet
+    private suspend fun updateSpeed() {
+            val speed = speed()
+            Log.d("Speed Update", "New Speed: $speed, Last Speed: $lastSpeedValue") // Log para depurar
+            if (speed != lastSpeedValue) {
+                lastSpeedValue = speed
+                currentSpeed = speed
+                withContext(Dispatchers.Main) {
+                    speed_display.text = speed
+                }
             }
-        }
+            //delay(500)
+    }            //NUEVOS METODOS
 
-
-        maxSpeed_display.text = maxSpeedValue
-
-
-        if (engineLoadRet != lastEngineLoad) {
-            lastEngineLoad = engineLoadRet
-            withContext(Dispatchers.Main) {
-                engine_load_display.text = engineLoadRet
+    private suspend fun updateThrottle() {
+            val throttle = throttle()
+            Log.d("Throttle Update", "New Throttle: $throttle, Last Throttle: $lastThrottleValue") // Log para depurar
+            if (throttle != lastThrottleValue) {
+                lastThrottleValue = throttle
+                currentThrottle = throttle
+                withContext(Dispatchers.Main) {
+                    throttle_display.text = throttle
+                }
             }
-        }
+            //delay(500)
+    }         //NUEVOS METODOS
 
-        if (log) {
-            // Agrega los valores de los sensores al archivo CSV
-            file.appendRow(
-                listOf(
-                    (System.currentTimeMillis() / 1000).toString(),
-                    rpmRet,
-                    speedRet,
-                    maxSpeed,
-                    throttleRet,
-                    fuelRet,
-                    engineLoadRet,
-                    gyroX,
-                    gyroY,
-                    gyroZ,
-                    accelX,
-                    accelY,
-                    accelZ,
-                    touchCount.toString(),
-                )
+    private suspend fun updateEngineLoad() {
+            val engineLoad = engineLoad()
+            Log.d("Engine Load Update", "New Engine Load: $engineLoad, Last Engine Load: $lastEngineLoad") // Log para depurar
+            if (engineLoad != lastEngineLoad) {
+                lastEngineLoad = engineLoad
+                currentEngineLoad = engineLoad
+                withContext(Dispatchers.Main) {
+                    engine_load_display.text = engineLoad
+                }
+            }
+            //delay(500)
+    }       //NUEVOS METODOS
+
+
+    private suspend fun updateMetricsAndLog() {
+        while (read) {
+            updateRPM()
+            updateSpeed()
+            updateThrottle()
+            updateFuelTrim()
+            updateEngineLoad()
+
+            currentGear = calculateGear(currentRPM, currentSpeed)
+
+            // Actualizar la interfaz de usuario con la marcha calculada
+            withContext(Dispatchers.Main) {
+                if (currentGear != null) {
+                    Toast.makeText(this@MainActivity, "Marcha actual: $currentGear", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this@MainActivity, "Vehículo detenido", Toast.LENGTH_SHORT).show()
+                }
+            }
+            logMetricsToCSV()
+        }
+    }
+
+    private fun stopUpdatingMetrics() {
+        // Detener cada métrica y cancelar sus jobs
+        metricScopes.forEach { it.cancel() }
+        metricScopes.clear() // Limpiar la lista de métricas activas
+        connected = false // Marca como desconectado
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Cancelar todas las coroutines cuando la actividad se destruya
+        metricScopes.forEach { it.cancel() }
+    }
+
+    private suspend fun logMetricsToCSV() {
+        if (csvFile == null || !log) return // Evita escribir si no se está registrando
+
+        try {
+            val writer = CSVWriter(FileWriter(csvFile, true))
+            val timestamp = System.currentTimeMillis().toString()
+
+            val row = arrayOf(
+                timestamp,
+                touchCount.toString(),
+                currentRPM.ifEmpty { "N/A" },
+                currentSpeed.ifEmpty { "N/A" },
+                currentMaxSpeed.ifEmpty { "N/A" },
+                currentThrottle.ifEmpty { "N/A" },
+                currentFuelTrim.ifEmpty { "N/A" },
+                currentEngineLoad.ifEmpty { "N/A" },
+                currentGear?.toString() ?: "N/A",
+                lastGyroX.ifEmpty { "N/A" },
+                lastGyroY.ifEmpty { "N/A" },
+                lastGyroZ.ifEmpty { "N/A" },
+                lastAccelX.ifEmpty { "N/A" },
+                lastAccelY.ifEmpty { "N/A" },
+                lastAccelZ.ifEmpty { "N/A" }
             )
+
+            Log.d("CSV", "Writing to CSV: $row")
+            writer.writeNext(row)
+            writer.close()
+        } catch (e: IOException) {
+            Log.e("CSV", "Error writing to CSV: ${e.message}")
         }
     }
 
@@ -497,7 +628,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                 stop.isEnabled = false
                 bt?.isEnabled = true
                 bt?.icon?.alpha = 255
-
+                stopUpdatingMetrics()
                 touchCount = 0
             }
         }
