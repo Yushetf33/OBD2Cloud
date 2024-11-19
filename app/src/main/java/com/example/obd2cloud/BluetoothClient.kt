@@ -10,15 +10,10 @@ import com.github.eltonvs.obd.command.ObdResponse
 import com.github.eltonvs.obd.command.Switcher
 import com.github.eltonvs.obd.command.at.*
 import com.github.eltonvs.obd.command.engine.LoadCommand
-import com.github.eltonvs.obd.command.engine.MassAirFlowCommand
 import com.github.eltonvs.obd.command.engine.RPMCommand
-import com.github.eltonvs.obd.command.engine.RelativeThrottlePositionCommand
 import com.github.eltonvs.obd.command.engine.SpeedCommand
 import com.github.eltonvs.obd.command.engine.ThrottlePositionCommand
-import com.github.eltonvs.obd.command.fuel.FuelConsumptionRateCommand
-import com.github.eltonvs.obd.command.fuel.FuelLevelCommand
 import com.github.eltonvs.obd.command.fuel.FuelTrimCommand
-import com.github.eltonvs.obd.command.pressure.FuelPressureCommand
 import com.github.eltonvs.obd.connection.ObdDeviceConnection
 import kotlinx.coroutines.*
 import java.io.IOException

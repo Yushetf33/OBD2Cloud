@@ -10,6 +10,7 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.Manifest
+import android.icu.text.SimpleDateFormat
 import android.os.Build
 import android.os.Bundle
 import android.os.Looper
@@ -27,13 +28,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.appbar.MaterialToolbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -41,11 +41,11 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import org.json.JSONException
 import java.io.File
+import java.util.Date
+import java.io.FileOutputStream
 import java.io.FileWriter
 import java.io.IOException
-import com.opencsv.CSVWriter
-import kotlinx.coroutines.coroutineScope
-
+import java.util.Locale
 
 class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListener {
     var menu: Menu? = null
@@ -68,7 +68,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     private var read: Boolean = true
     private var log: Boolean = false
     private lateinit var stop: Button
-    private lateinit var file: CsvLog
     private var bt: MenuItem? = null
     private var job: Job? = null
 
@@ -86,6 +85,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     private lateinit var sensorManager: SensorManager
     private var gyroscope: Sensor? = null
     private var accelerometer: Sensor? = null
+    val timestamp = System.currentTimeMillis()
     private var touchCount: Int = 0
     private var currentRPM: String = ""
     private var currentFuelTrim: String = ""
@@ -101,8 +101,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     private var lastAccelY: String = ""
     private var lastAccelZ: String = ""
 
-    private var csvInitialized = false // Verifica si los encabezados ya se escribieron
-    private var csvFile: File? = null
+    private var fileName: String = "vehicle_data_${SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())}.csv"
+    private var isHeaderWritten = false
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -184,7 +184,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         }
     }
 
-
     private fun obtenerMaxSpeed() {
         Log.d("MainActivity", "obtenerMaxSpeed llamada")
         val locationService = LocationService(this)
@@ -252,7 +251,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         }
     }
 
-
     override fun onStart() {
         super.onStart()
         startUpdatingMaxSpeed()
@@ -307,58 +305,17 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                     Log.d("LOGGING", "Start logging clicked")
                     Toast.makeText(this, "Starting logging...", Toast.LENGTH_SHORT).show()
                     menu?.findItem(R.id.rec)?.title = "Stop logging"
-                    try {
-                        file = CsvLog(
-                            "OBD2Cloud_log_${System.currentTimeMillis() / 1000}.csv",
-                            applicationContext
-                        )
-                        file.makeHeader()
-                        log = true
-                    } catch (e: Exception) {
-                        Toast.makeText(this, "Error: $e", Toast.LENGTH_LONG).show()
-                    }
+                    log = true
+
                 } else {
                     Log.d("LOGGING", "Stop logging clicked")
                     Toast.makeText(this, "Stopping logging...", Toast.LENGTH_SHORT).show()
                     menu?.findItem(R.id.rec)?.title = "Start logging"
                     log = false
-                    Toast.makeText(
-                        this,
-                        "Stop logging\nFile saved in ${file.path}.",
-                        Toast.LENGTH_LONG
-                    ).show()
                 }
             }
-
         }
         return false
-    }
-
-    private fun createCSVHeader(file: File) {
-        try {
-            val writer = CSVWriter(FileWriter(file, true))
-            val header = arrayOf(
-                "Timestamp",
-                "Touch Count",
-                "RPM",
-                "Speed",
-                "Max Speed",
-                "Throttle",
-                "Fuel Trim",
-                "Engine Load",
-                "Gear",
-                "GyroX",
-                "GyroY",
-                "GyroZ",
-                "AccelX",
-                "AccelY",
-                "AccelZ"
-            )
-            writer.writeNext(header)
-            writer.close()
-        } catch (e: IOException) {
-            Log.e("CSV", "Error creating CSV header: ${e.message}")
-        }
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -408,14 +365,13 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                 bt?.icon?.alpha = 120
             }
             job = CoroutineScope(Dispatchers.IO).launch {
-                while (read) {
+                if (read)
                     updateMetricsAndLog()
-                }
             }
         }
     }
 
-    private suspend fun calculateGear(rpm: String, speed: String): Int? {
+    private fun calculateGear(rpm: String, speed: String): Int? {
         val rpmValue = rpm.toIntOrNull()  // Convertir rpm a Int
         val speedValue = speed.toFloatOrNull()  // Convertir speed a Float
 
@@ -508,6 +464,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     }       //NUEVOS METODOS
 
 
+    @RequiresApi(Build.VERSION_CODES.Q)
     private suspend fun updateMetricsAndLog() {
         while (read) {
             updateRPM()
@@ -526,7 +483,9 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                     Toast.makeText(this@MainActivity, "Vehículo detenido", Toast.LENGTH_SHORT).show()
                 }
             }
-            logMetricsToCSV()
+
+            if(log)
+                logMetricsToCSV(fileName)
         }
     }
 
@@ -543,34 +502,42 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         metricScopes.forEach { it.cancel() }
     }
 
-    private suspend fun logMetricsToCSV() {
-        if (csvFile == null || !log) return // Evita escribir si no se está registrando
+    private fun logMetricsToCSV(fileName: String) {
+        val dir = File(getExternalFilesDir(null), "MyAppData")
+        Log.d("CSV", "Directory: ${dir.absolutePath}")
+        if (!dir.exists()) {
+            Log.d("CSV", "Directory doesn't exist, creating directory")
+            val dirCreated = dir.mkdirs()
+            Log.d("CSV", "Directory created: $dirCreated")
+        }
+
+        val file = File(dir, fileName)
+        Log.d("CSV", "File: ${file.absolutePath}")
 
         try {
-            val writer = CSVWriter(FileWriter(csvFile, true))
+            if (!file.exists()) {
+                Log.d("CSV", "File doesn't exist, creating new file")
+                val fileCreated = file.createNewFile()
+                Log.d("CSV", "File created: $fileCreated")
+            } else {
+                Log.d("CSV", "File already exists")
+            }
+
+            val writer = FileWriter(file, true)
+
+            if (!isHeaderWritten) {
+                Log.d("CSV", "Writing header to CSV file")
+                writer.append("Timestamp,Touch Count,RPM,Fuel Trim,Speed,Throttle Position,Engine Load,Max Speed,Gear,Last Gyro X,Last Gyro Y, Last Gyro Z, Last Accel X, Last Accel Y, Last Accel Z\n")
+                isHeaderWritten = true
+            }
+
             val timestamp = System.currentTimeMillis().toString()
-
-            val row = arrayOf(
-                timestamp,
-                touchCount.toString(),
-                currentRPM.ifEmpty { "N/A" },
-                currentSpeed.ifEmpty { "N/A" },
-                currentMaxSpeed.ifEmpty { "N/A" },
-                currentThrottle.ifEmpty { "N/A" },
-                currentFuelTrim.ifEmpty { "N/A" },
-                currentEngineLoad.ifEmpty { "N/A" },
-                currentGear?.toString() ?: "N/A",
-                lastGyroX.ifEmpty { "N/A" },
-                lastGyroY.ifEmpty { "N/A" },
-                lastGyroZ.ifEmpty { "N/A" },
-                lastAccelX.ifEmpty { "N/A" },
-                lastAccelY.ifEmpty { "N/A" },
-                lastAccelZ.ifEmpty { "N/A" }
-            )
-
-            Log.d("CSV", "Writing to CSV: $row")
-            writer.writeNext(row)
+            Log.d("CSV", "Logging data: $timestamp,$touchCount,$currentRPM,$currentFuelTrim,$currentEngineLoad,$currentSpeed,$currentThrottle,$currentMaxSpeed,$currentGear,$lastGyroX,$lastGyroY,$lastGyroZ,$lastAccelX,$lastAccelY,$lastAccelZ")
+            writer.append("$timestamp,$touchCount,$currentRPM,$currentFuelTrim,$currentSpeed,$currentThrottle,$currentEngineLoad,$currentMaxSpeed,$currentGear,$lastGyroX,$lastGyroY,$lastGyroZ,$lastAccelX,$lastAccelY,$lastAccelZ\n")
             writer.close()
+
+            Log.d("CSV", "Data logged successfully")
+
         } catch (e: IOException) {
             Log.e("CSV", "Error writing to CSV: ${e.message}")
         }
