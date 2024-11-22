@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId "com.example.myobc"
-        minSdk 24
+        minSdk 26
         targetSdk 34
         versionCode 1
         versionName "1.0"
@@ -68,5 +68,6 @@ dependencies {
     implementation 'com.google.mlkit:object-detection:17.0.0'
     implementation 'com.google.mlkit:vision-common:16.0.0'
     implementation 'com.opencsv:opencsv:5.6'  // Asegúrate de usar la última versión disponible
+    implementation 'org.apache.poi:poi-ooxml:5.2.3'
 }
 

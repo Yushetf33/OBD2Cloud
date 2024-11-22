@@ -76,7 +76,7 @@ class BluetoothClient(private val device: BluetoothDevice) {
             try {
                 clearInputStream()
                 Log.d("OBD", "Sending RPM command")
-                val aux: ObdResponse = obdConnection.run(RPMCommand(), delayTime = 100)
+                val aux: ObdResponse = obdConnection.run(RPMCommand(), delayTime = 10)
                 if (aux.rawResponse.value.contains("410C")) {
                     Log.d("OBD", "RPM Response: ${aux.formattedValue}")
                     aux.value
@@ -96,7 +96,7 @@ class BluetoothClient(private val device: BluetoothDevice) {
             try {
                 clearInputStream()
                 Log.d("OBD", "Sending Speed command")
-                val aux: ObdResponse = obdConnection.run(SpeedCommand(), delayTime = 100)
+                val aux: ObdResponse = obdConnection.run(SpeedCommand(), delayTime = 10)
                 if (aux.rawResponse.value.contains("410D")) {
                     Log.d("OBD", "Speed Response: ${aux.formattedValue}")
                     aux.value
@@ -116,7 +116,7 @@ class BluetoothClient(private val device: BluetoothDevice) {
             try {
                 clearInputStream()
                 Log.d("OBD", "Sending Throttle Position command")
-                val aux: ObdResponse = obdConnection.run(ThrottlePositionCommand(), delayTime = 100)
+                val aux: ObdResponse = obdConnection.run(ThrottlePositionCommand(), delayTime = 10)
                 if (aux.rawResponse.value.contains("4111")) {
                     Log.d("OBD", "Throttle Position Response: ${aux.formattedValue}")
                     aux.value
@@ -136,7 +136,7 @@ class BluetoothClient(private val device: BluetoothDevice) {
             try {
                 clearInputStream()
                 Log.d("OBD", "Sending Engine Load command")
-                val aux: ObdResponse = obdConnection.run(LoadCommand(), delayTime = 100)
+                val aux: ObdResponse = obdConnection.run(LoadCommand(), delayTime = 10)
                 if (aux.rawResponse.value.contains("4104")) {
                     Log.d("OBD", "Engine Load Response: ${aux.formattedValue}")
                     aux.value
@@ -156,7 +156,7 @@ class BluetoothClient(private val device: BluetoothDevice) {
             try {
                 clearInputStream()
                 Log.d("OBD", "Sending Fuel Trim Short command")
-                val aux: ObdResponse = obdConnection.run(FuelTrimCommand(FuelTrimCommand.FuelTrimBank.SHORT_TERM_BANK_1), delayTime = 100)
+                val aux: ObdResponse = obdConnection.run(FuelTrimCommand(FuelTrimCommand.FuelTrimBank.SHORT_TERM_BANK_1), delayTime = 10)
                 Log.d("OBD", "Raw Fuel Trim Response: ${aux.rawResponse.value}")
 
                 if (aux.rawResponse.value.contains("4106")) {
