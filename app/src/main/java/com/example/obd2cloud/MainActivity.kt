@@ -388,8 +388,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
             rpmValue * 0.015882352f,
             rpmValue * 0.022352938f,
             rpmValue * 0.029411765f,
-            rpmValue * 0.037058823f,
-            rpmValue * 0.046470586f
+            rpmValue * 0.0327529f,
+            rpmValue * 0.04043478f
         )
 
         // Encontrar el valor mínimo de la diferencia entre las velocidades estimadas y la velocidad actual
