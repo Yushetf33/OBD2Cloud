@@ -384,10 +384,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
 
         // Calcular las velocidades estimadas para cada marcha a partir de las RPM
         val speeds = listOf(
-            rpmValue * 0.008225841f,
-            rpmValue * 0.015882352f,
-            rpmValue * 0.022352938f,
-            rpmValue * 0.029411765f,
+            rpmValue * 0.007368421f,
+            rpmValue * 0.014736842f,
+            rpmValue * 0.019607844f,
+            rpmValue * 0.026041666f,
             rpmValue * 0.0327529f,
             rpmValue * 0.04043478f
         )
