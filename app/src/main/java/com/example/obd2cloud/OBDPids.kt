@@ -15,6 +15,7 @@ class SetBaudRateCommand(baud: Int) : ATCommand() {
     override val tag = "BAUD"
     override val name = "Set baud rate"
     override val mode = "AT"
+
     override val pid = "PB38400"
 }
 

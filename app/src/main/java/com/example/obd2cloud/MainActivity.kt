@@ -399,6 +399,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         return currentGear
     }
 
+
     private suspend fun updateRPM() {
         currentRPM = RPM()
         Log.d("RPM Update", "New RPM: $currentRPM, Last RPM: $lastRPMValue") // Log para depurar

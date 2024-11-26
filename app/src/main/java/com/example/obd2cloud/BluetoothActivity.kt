@@ -94,6 +94,7 @@ class BluetoothActivity : AppCompatActivity(), View.OnClickListener {
         return locationMode != Settings.Secure.LOCATION_MODE_OFF
     }
 
+
     private fun showLocationAlertDialog() {
         val builder = AlertDialog.Builder(this)
         builder.apply {

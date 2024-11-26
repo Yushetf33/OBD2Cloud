@@ -19,6 +19,7 @@ open class CsvLog(private val filename: String, private val context: Context) {
     private lateinit var logFile: File
     var path: File
 
+
     init {
 
         val externalStorageVolumes = ContextCompat.getExternalFilesDirs(
