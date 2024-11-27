@@ -88,21 +88,36 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+
     <TextView
         android:id="@+id/gear_display"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:layout_marginBottom="16dp"
+        android:layout_width="359dp"
+        android:layout_height="80dp"
+        android:layout_marginStart="2dp"
+        android:layout_marginTop="2dp"
+        android:layout_marginEnd="2dp"
+        android:layout_marginBottom="2dp"
+        android:background="#2C2B2B"
+        android:includeFontPadding="true"
+        android:padding="10dp"
+        android:paddingStart="10dp"
+        android:paddingLeft="10dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="10dp"
+        android:paddingRight="10dp"
+        android:paddingBottom="10dp"
         android:text="Gear: _._"
-        android:textSize="18sp"
-        android:textColor="#FF07FFCD"
+        android:textAlignment="center"
+        android:textColor="#FF0707"
+        android:textSize="36sp"
         android:textStyle="bold"
-        app:layout_constraintTop_toBottomOf="@+id/frameLayoutFuelTrim"
+        android:typeface="monospace"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.518"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-
+        app:layout_constraintTop_toBottomOf="@+id/frameLayoutFuelTrim"
+        app:layout_constraintVertical_bias="0.214" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/frameLayoutAmbientTemperature"

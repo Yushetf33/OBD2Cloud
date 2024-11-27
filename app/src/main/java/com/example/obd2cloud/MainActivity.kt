@@ -49,7 +49,6 @@ import java.util.Locale
 import org.apache.poi.ss.usermodel.Workbook
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import java.io.FileOutputStream
-import com.example.obd2cloud.R
 
 class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListener {
     private var menu: Menu? = null
@@ -371,99 +370,67 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     }
 
     private fun calculateGear(rpm: String, speed: String): Int? {
-        val rpmValue = rpm.toIntOrNull()  // Convertir rpm a Int
-        val speedValue = speed.toFloatOrNull()  // Convertir speed a Float
+            val rpmValue = rpm.toIntOrNull()  // Convertir rpm a Int
+            val speedValue = speed.toFloatOrNull()  // Convertir speed a Float
 
-        // Verificar que las conversiones sean válidas
-        if (rpmValue == null || speedValue == null || speedValue <= 0) {
-            currentGear = 0
-            return currentGear // Si alguno es inválido o el vehículo está detenido
-        }
+            // Verificar que las conversiones sean válidas
+            if (rpmValue == null || speedValue == null || speedValue <= 0) {
+                currentGear = 0
+                gear_display.text = currentGear.toString()
+                return currentGear // Si alguno es inválido o el vehículo está detenido
+            }
 
-        // Calcular las velocidades estimadas para cada marcha a partir de las RPM
-        val speeds = listOf(
-            rpmValue * 0.007368421f,
-            rpmValue * 0.014736842f,
-            rpmValue * 0.019607844f,
-            rpmValue * 0.026041666f,
-            rpmValue * 0.0327529f,
-            rpmValue * 0.04043478f
-        )
+            // Calcular las velocidades estimadas para cada marcha a partir de las RPM
+            val speeds = listOf(
+                rpmValue * 0.007368421f,
+                rpmValue * 0.014736842f,
+                rpmValue * 0.019607844f,
+                rpmValue * 0.026041666f,
+                rpmValue * 0.0327529f,
+                rpmValue * 0.04043478f
+            )
 
-        // Encontrar el valor mínimo de la diferencia entre las velocidades estimadas y la velocidad actual
-        val closestSpeed = speeds.minByOrNull { estimatedSpeed -> kotlin.math.abs(estimatedSpeed - speedValue) }
-        currentGear = closestSpeed?.let { speeds.indexOf(it) + 1 }
-        // Si encontramos una velocidad más cercana, retornamos el índice (más 1 para la marcha)
-        gear_display.text = currentGear.toString()
-
-        return currentGear
+            // Encontrar el valor mínimo de la diferencia entre las velocidades estimadas y la velocidad actual
+            val closestSpeed =
+                speeds.minByOrNull { estimatedSpeed -> kotlin.math.abs(estimatedSpeed - speedValue) }
+            currentGear = closestSpeed?.let { speeds.indexOf(it) + 1 }
+            gear_display.text = currentGear.toString()
+            return currentGear
     }
 
 
     private suspend fun updateRPM() {
         currentRPM = RPM()
-        Log.d("RPM Update", "New RPM: $currentRPM, Last RPM: $lastRPMValue") // Log para depurar
-        if (currentRPM != lastRPMValue) { // Comparar con el valor previo
-            lastRPMValue = currentRPM
-            withContext(Dispatchers.Main) { // Actualizar la UI en el hilo principal
+        withContext(Dispatchers.Main) { // Actualizar la UI en el hilo principal
                 RPM_display.text = currentRPM
             }
-        }
     }
 
     private suspend fun updateFuelTrim() {
         currentFuelTrim = fuelTrim()
-        Log.d(
-            "Fuel Trim Update",
-            "New Fuel Trim: $currentFuelTrim, Last Fuel Trim: $lastFuelValue"
-        ) // Log para depurar
-        if (currentFuelTrim != lastFuelValue) {
-            lastFuelValue = currentFuelTrim
-            withContext(Dispatchers.Main) {
-                fuel_display.text = currentFuelTrim
-            }
+        withContext(Dispatchers.Main) {
+            fuel_display.text = currentFuelTrim
         }
     }
 
     private suspend fun updateSpeed() {
         currentSpeed = speed()
-        Log.d(
-            "Speed Update",
-            "New Speed: $currentSpeed, Last Speed: $lastSpeedValue"
-        ) // Log para depurar
-        if (currentSpeed != lastSpeedValue) {
-            lastSpeedValue = currentSpeed
-            withContext(Dispatchers.Main) {
-                speed_display.text = currentSpeed
-            }
+        withContext(Dispatchers.Main) {
+            speed_display.text = currentSpeed
         }
     }
 
     private suspend fun updateThrottle() {
         currentThrottle = throttle()
-        Log.d(
-            "Throttle Update",
-            "New Throttle: $currentThrottle, Last Throttle: $lastThrottleValue"
-        ) // Log para depurar
-        if (currentThrottle != lastThrottleValue) {
-            lastThrottleValue = currentThrottle
-            withContext(Dispatchers.Main) {
-                throttle_display.text = currentThrottle
-            }
+        withContext(Dispatchers.Main) {
+            throttle_display.text = currentThrottle
         }
     }
 
     private suspend fun updateEngineLoad() {
         currentEngineLoad = engineLoad()
-        Log.d(
-            "Engine Load Update",
-            "New Engine Load: $currentEngineLoad, Last Engine Load: $lastEngineLoad"
-        ) // Log para depurar
-        if (currentEngineLoad != lastEngineLoad) {
-            lastEngineLoad = currentEngineLoad
-            withContext(Dispatchers.Main) {
-                engine_load_display.text = currentEngineLoad
-            }
+        withContext(Dispatchers.Main) {
+            engine_load_display.text = currentEngineLoad
         }
     }
 
@@ -480,16 +447,29 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
 
     private fun launchMetricsUpdateJob(): Job {
         return lifecycleScope.launch {
+            // Lanzar calculateGear en una corutina separada para que no bloquee el flujo
+            launch {
+                while (read) {
+                    calculateGear(currentRPM, currentSpeed)  // Mantiene el cálculo del engranaje en segundo plano
+                    delay(100) // Controla la frecuencia del cálculo de engranaje (ajustable según necesidades)
+                }
+            }
+
             while (read) {
+                // Actualizar métricas de alta prioridad
                 updateRPM()
                 updateSpeed()
+
+                // Actualizar métricas de baja prioridad periódicamente
                 updateThrottle()
                 updateFuelTrim()
+
+                updateRPM()
+                updateSpeed()
+
                 updateEngineLoad()
 
-                currentGear = calculateGear(currentRPM, currentSpeed)
-
-                delay(50) // Controla la frecuencia de actualización de métricas
+                delay(50) // Controla la frecuencia de actualización de las métricas
             }
         }
     }
@@ -596,98 +576,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
             Log.e("Excel", "Error writing to Excel: ${e.message}")
         }
     }
-
-    private fun logMetricsToCSV(fileName: String) {
-        val dir = File(getExternalFilesDir(null), "MyAppData")
-        Log.d("CSV", "Directory: ${dir.absolutePath}")
-        if (!dir.exists()) {
-            Log.d("CSV", "Directory doesn't exist, creating directory")
-            val dirCreated = dir.mkdirs()
-            Log.d("CSV", "Directory created: $dirCreated")
-        }
-
-        val file = File(dir, fileName)
-        Log.d("CSV", "File: ${file.absolutePath}")
-
-        try {
-            if (!file.exists()) {
-                Log.d("CSV", "File doesn't exist, creating new file")
-                val fileCreated = file.createNewFile()
-                Log.d("CSV", "File created: $fileCreated")
-            } else {
-                Log.d("CSV", "File already exists")
-            }
-
-            val writer = FileWriter(file, true)
-
-            if (!isHeaderWritten) {
-                Log.d("CSV", "Writing header to CSV file")
-                writer.append("Current Time,Touch Count,RPM,Fuel Trim,Speed,Throttle Position,Engine Load,Max Speed,Gear,Last Gyro X,Last Gyro Y, Last Gyro Z, Last Accel X, Last Accel Y, Last Accel Z\n")
-                isHeaderWritten = true
-            }
-
-            val currentTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-            Log.d("CSV", "Logging data: $currentTime,$touchCount,$currentRPM,$currentFuelTrim,$currentSpeed,$currentThrottle,$currentEngineLoad,$currentMaxSpeed,$currentGear,$currentGyroX,$currentGyroY,$currentGyroZ,$currentAccelX,$currentAccelY,$currentAccelZ")
-            writer.append("$currentTime,$touchCount,$currentRPM,$currentFuelTrim,$currentSpeed,$currentThrottle,$currentEngineLoad,$currentMaxSpeed,$currentGear,$currentGyroX,$currentGyroY,$currentGyroZ,$currentAccelX,$currentAccelY,$currentAccelZ\n")
-            writer.close()
-
-            Log.d("CSV", "Data logged successfully")
-
-        } catch (e: IOException) {
-            Log.e("CSV", "Error writing to CSV: ${e.message}")
-        }
-    }
-
-    private fun logMetricsToJSON(fileName: String) {
-        val dir = File(getExternalFilesDir(null), "MyAppData")
-        Log.d("JSON", "Directory: ${dir.absolutePath}")
-        if (!dir.exists()) {
-            Log.d("JSON", "Directory doesn't exist, creating directory")
-            val dirCreated = dir.mkdirs()
-            Log.d("JSON", "Directory created: $dirCreated")
-        }
-
-        val file = File(dir, fileName)
-        Log.d("JSON", "File: ${file.absolutePath}")
-
-        try {
-            val jsonObject = JSONObject()
-            val currentTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-
-            // Adding the data to the JSON object
-            jsonObject.put("currentTime", currentTime)
-            jsonObject.put("touchCount", touchCount)
-            jsonObject.put("currentRPM", currentRPM)
-            jsonObject.put("currentFuelTrim", currentFuelTrim)
-            jsonObject.put("currentSpeed", currentSpeed)
-            jsonObject.put("currentThrottle", currentThrottle)
-            jsonObject.put("currentEngineLoad", currentEngineLoad)
-            jsonObject.put("currentMaxSpeed", currentMaxSpeed)
-            jsonObject.put("currentGear", currentGear)
-            jsonObject.put("currentGyroX", currentGyroX)
-            jsonObject.put("currentGyroY", currentGyroY)
-            jsonObject.put("currentGyroZ", currentGyroZ)
-            jsonObject.put("currentAccelX", currentAccelX)
-            jsonObject.put("currentAccelY", currentAccelY)
-            jsonObject.put("currentAccelZ", currentAccelZ)
-
-            val writer = FileWriter(file, true)
-
-            // Append the JSON object to the file
-            writer.append(jsonObject.toString(4)) // "4" for pretty formatting
-            writer.append("\n") // Add a newline for each entry
-            writer.close()
-
-            Log.d("JSON", "Data logged successfully")
-
-        } catch (e: IOException) {
-            Log.e("JSON", "Error writing to JSON: ${e.message}")
-        } catch (e: JSONException) {
-            Log.e("JSON", "Error creating JSON object: ${e.message}")
-        }
-    }
-
-
 
     override fun onSensorChanged(event: SensorEvent?) {
         event?.let {
@@ -802,14 +690,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     override fun onPause() {
         super.onPause()
         sensorManager.unregisterListener(this)
-    }
-
-    companion object {
-        var lastRPMValue = ""
-        var lastSpeedValue = ""
-        var lastThrottleValue = ""
-        var lastFuelValue = ""
-        var lastEngineLoad = ""
     }
 }
 
