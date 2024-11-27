@@ -37,9 +37,6 @@
             android:name=".BluetoothActivity"
             android:exported="false" />
 
-        <activity
-            android:name=".CameraPreviewActivity"
-            android:exported="false" />
 
         <activity
             android:name=".MainActivity"

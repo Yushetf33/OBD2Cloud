@@ -49,19 +49,18 @@ import java.util.Locale
 import org.apache.poi.ss.usermodel.Workbook
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import java.io.FileOutputStream
+import com.example.obd2cloud.R
 
 class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListener {
     private var menu: Menu? = null
-
     private lateinit var connection_status: TextView
     private lateinit var speed_display: TextView
     private lateinit var RPM_display: TextView
     private lateinit var throttle_display: TextView
     private lateinit var maxSpeed_display: TextView
     private lateinit var engine_load_display: TextView
-    private lateinit var gyro_display: TextView
-    private lateinit var accel_display: TextView
     private lateinit var fuel_display: TextView
+    private lateinit var gear_display: TextView
 
     private var address: String = ""
     private lateinit var mBluetoothAdapter: BluetoothAdapter
@@ -117,11 +116,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         speed_display = findViewById(R.id.speed_display)
         RPM_display = findViewById(R.id.RPM_display)
         fuel_display = findViewById(R.id.fuel_display)
+        gear_display = findViewById(R.id.gear_display)
         throttle_display = findViewById(R.id.throttle_display)
         maxSpeed_display = findViewById(R.id.maxSpeed_display)
         engine_load_display = findViewById(R.id.engine_load_display)
-        gyro_display = findViewById(R.id.gyro_display)
-        accel_display = findViewById(R.id.accel_display)
 
         stop = findViewById(R.id.stop)
         stop.setOnClickListener(this)
@@ -396,6 +394,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         val closestSpeed = speeds.minByOrNull { estimatedSpeed -> kotlin.math.abs(estimatedSpeed - speedValue) }
         currentGear = closestSpeed?.let { speeds.indexOf(it) + 1 }
         // Si encontramos una velocidad más cercana, retornamos el índice (más 1 para la marcha)
+        gear_display.text = currentGear.toString()
+
         return currentGear
     }
 
@@ -488,11 +488,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                 updateEngineLoad()
 
                 currentGear = calculateGear(currentRPM, currentSpeed)
-
-                // Actualizar la interfaz de usuario con la marcha calculada
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(this@MainActivity, "Marcha actual: $currentGear", Toast.LENGTH_SHORT).show()
-                }
 
                 delay(50) // Controla la frecuencia de actualización de métricas
             }
@@ -701,24 +696,12 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                     currentGyroX = event.values[0].toString()
                     currentGyroY = event.values[1].toString()
                     currentGyroZ = event.values[2].toString()
-                    gyro_display.text = getString(
-                        R.string.gyro_values,
-                        event.values[0],
-                        event.values[1],
-                        event.values[2]
-                    )
                 }
 
                 Sensor.TYPE_ACCELEROMETER -> {
                     currentAccelX = event.values[0].toString()
                     currentAccelY = event.values[1].toString()
                     currentAccelZ = event.values[2].toString()
-                    accel_display.text = getString(
-                        R.string.accel_values,
-                        event.values[0],
-                        event.values[1],
-                        event.values[2]
-                    )
                 }
             }
         }
@@ -803,8 +786,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         maxSpeed_display.text = getString(R.string.default_display)
         fuel_display.text = getString(R.string.default_display)
         engine_load_display.text = getString(R.string.default_display)
-        gyro_display.text = getString(R.string.default_display)
-        accel_display.text = getString(R.string.default_display)
+        gear_display.text = "_._"
     }
 
     override fun onResume() {
