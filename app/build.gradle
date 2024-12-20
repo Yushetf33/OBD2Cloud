@@ -36,6 +36,7 @@ android {
 }
 
 dependencies {
+    implementation 'org.apache.poi:poi-ooxml:5.2.3'
     implementation 'androidx.core:core-ktx:1.8.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.5.0'
@@ -66,7 +67,8 @@ dependencies {
     implementation("org.tensorflow:tensorflow-lite-metadata:0.4.2")
     implementation 'com.google.mlkit:object-detection:17.0.0'
     implementation 'com.google.mlkit:vision-common:16.0.0'
-    implementation 'com.opencsv:opencsv:5.6'  // Asegúrate de usar la última versión disponible
+    implementation 'com.opencsv:opencsv:5.6'
+    implementation "com.squareup.okhttp3:okhttp:4.10.0"
     implementation 'org.apache.poi:poi-ooxml:5.2.3'
 }
 
