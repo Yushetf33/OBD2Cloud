@@ -99,6 +99,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     private var currentAccelX: String = ""
     private var currentAccelY: String = ""
     private var currentAccelZ: String = ""
+    private var responseCountMap = mutableMapOf("tranquilo" to 0, "agresivo" to 0, "normal" to 0)
+
 
     private var fileName: String = "vehicle_data_${SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())}.xlsx" //cambiar extension para json o csv
     private var fileNameJson: String = "vehicle_data_${SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())}.json" //cambiar extension para json o csv
@@ -443,16 +445,27 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         // Esperar a que ambas tareas finalicen
         updateJob.join()
         logJob.join()
+
         val json = withContext(Dispatchers.IO) {
             convertExcelToStructuredJson(fileName)
         }
 
+        processApiResponse(json, fileNameJson)
+    }
+
+    suspend fun processApiResponse(json: String, fileNameJson: String) {
         if (json.isNotEmpty()) {
             // Guardar el JSON en un archivo
-            val filePath = saveJsonToFile(json, fileNameJson)  // Puedes cambiar "converted_data.json" por el nombre que desees
+            val filePath = saveJsonToFile(json, fileNameJson) // Puedes cambiar "converted_data.json" por el nombre que desees
             try {
-                val api = ApiDrivingStyle("8mxnjCT74badfewKW4JtGZbs39skW3BD", "https://recomendacionesdeconducci-stscl.spaincentral.inference.ml.azure.com/score")
+                val api = ApiDrivingStyle(
+                    "8mxnjCT74badfewKW4JtGZbs39skW3BD",
+                    "https://recomendacionesdeconducci-stscl.spaincentral.inference.ml.azure.com/score"
+                )
                 val result = api.sendPostRequest(filePath)
+
+                // Contar las respuestas
+                countResponses(result, responseCountMap)
 
                 // Mostrar el resultado de la API en la UI
                 withContext(Dispatchers.Main) {
@@ -468,6 +481,37 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
             Log.e("ExcelToJson", "Hubo un error al convertir el Excel a JSON.")
         }
     }
+
+
+    // Función para contar las respuestas
+    suspend fun countResponses(response: String, responseCountMap: MutableMap<String, Int>) {
+        // Dividir el String de respuestas en una lista de palabras
+        val responseList = response.split(",").map { it.trim().trim('"') }
+
+        // Recorrer la lista de respuestas y contar las ocurrencias
+        for (res in responseList) {
+            when (res) {
+                "tranquilo" -> responseCountMap["tranquilo"] = responseCountMap.getOrDefault("tranquilo", 0) + 1
+                "agresiva" -> responseCountMap["agresiva"] = responseCountMap.getOrDefault("agresiva", 0) + 1
+                "normal" -> responseCountMap["normal"] = responseCountMap.getOrDefault("normal", 0) + 1
+                else -> Log.e("ApiResponse", "Respuesta no válida: $res")
+            }
+        }
+
+        // Obtener los resultados desde el mapa de respuestas
+        val tranquiloCount = responseCountMap["tranquilo"] ?: 0
+        val agresivaCount = responseCountMap["agresiva"] ?: 0
+        val normalCount = responseCountMap["normal"] ?: 0
+
+        // Mostrar los resultados en Toast
+        withContext(Dispatchers.Main) {
+            Toast.makeText(applicationContext, "Tranquilo: $tranquiloCount", Toast.LENGTH_SHORT).show()
+            Toast.makeText(applicationContext, "Agresivo: $agresivaCount", Toast.LENGTH_SHORT).show()
+            Toast.makeText(applicationContext, "Normal: $normalCount", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+
 
     private fun launchMetricsUpdateJob(): Job {
         return lifecycleScope.launch {
