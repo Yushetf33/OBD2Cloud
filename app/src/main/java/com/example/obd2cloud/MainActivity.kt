@@ -185,7 +185,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     }
 
     private fun obtenerMaxSpeed() {
-        Log.d("MainActivity", "obtenerMaxSpeed llamada")
         val locationService = LocationService(this)
 
         // Obtén la ubicación actual
@@ -193,7 +192,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
             if (location != null) {
 
                 val radioDinamico = calcularRadioPorVelocidad(currentSpeed)
-                Log.d("MainActivity", "Radio dinamico: $radioDinamico")
 
                 // Realiza la solicitud a OpenStreetMap con el radio ajustado
                 openStreetMapService.obtenerMaxSpeed(radioDinamico) { resultado ->
@@ -227,7 +225,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                                     velocidadAnterior = mostFrequentMaxSpeed // Actualiza la velocidad anterior
                                     currentMaxSpeed = velocidadAnterior.toString()
                                     maxSpeed_display.text = mostFrequentMaxSpeed
-                                    Log.d("MainActivity", "Velocidad máxima: $mostFrequentMaxSpeed")
+                                    //Log.d("MainActivity", "Velocidad máxima: $mostFrequentMaxSpeed")
                                 } else {
                                     maxSpeed_display.text = velocidadAnterior ?: "N/A" // Muestra la velocidad anterior si no hay resultados
                                     Log.d("MainActivity", "No se encontraron valores de maxspeed. Mostrando velocidad anterior: ${velocidadAnterior ?: "N/A"}")
@@ -314,6 +312,17 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                     log = false
                 }
             }
+
+            R.id.show_statistics -> {
+                // Iniciar la actividad de gráficos
+                val intent = Intent(this, PieChartActivity::class.java)
+                intent.putExtra("tranquilo", responseCountMap["tranquilo"] ?: 0)
+                intent.putExtra("agresivo", responseCountMap["agresivo"] ?: 0)
+                intent.putExtra("normal", responseCountMap["normal"] ?: 0)
+                startActivity(intent)
+                return true
+            }
+
         }
         return false
     }
@@ -467,10 +476,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                 // Contar las respuestas
                 countResponses(result, responseCountMap)
 
-                // Mostrar el resultado de la API en la UI
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(applicationContext, result, Toast.LENGTH_LONG).show()
-                }
             } catch (e: Exception) {
                 // Manejar errores de la solicitud
                 withContext(Dispatchers.Main) {
