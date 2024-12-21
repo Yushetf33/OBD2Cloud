@@ -99,7 +99,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     private var currentAccelX: String = ""
     private var currentAccelY: String = ""
     private var currentAccelZ: String = ""
-    private var responseCountMap = mutableMapOf("tranquilo" to 0, "agresivo" to 0, "normal" to 0)
+    private var responseCountMap = mutableMapOf("tranquilo" to 0, "agresiva" to 0, "normal" to 0)
 
 
     private var fileName: String = "vehicle_data_${SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())}.xlsx" //cambiar extension para json o csv
@@ -317,7 +317,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                 // Iniciar la actividad de gráficos
                 val intent = Intent(this, PieChartActivity::class.java)
                 intent.putExtra("tranquilo", responseCountMap["tranquilo"] ?: 0)
-                intent.putExtra("agresivo", responseCountMap["agresivo"] ?: 0)
+                intent.putExtra("agresiva", responseCountMap["agresiva"] ?: 0)
                 intent.putExtra("normal", responseCountMap["normal"] ?: 0)
                 startActivity(intent)
                 return true
@@ -465,7 +465,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     suspend fun processApiResponse(json: String, fileNameJson: String) {
         if (json.isNotEmpty()) {
             // Guardar el JSON en un archivo
-            val filePath = saveJsonToFile(json, fileNameJson) // Puedes cambiar "converted_data.json" por el nombre que desees
+            val filePath = saveJsonToFile(json, fileNameJson)
             try {
                 val api = ApiDrivingStyle(
                     "8mxnjCT74badfewKW4JtGZbs39skW3BD",
@@ -511,7 +511,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         // Mostrar los resultados en Toast
         withContext(Dispatchers.Main) {
             Toast.makeText(applicationContext, "Tranquilo: $tranquiloCount", Toast.LENGTH_SHORT).show()
-            Toast.makeText(applicationContext, "Agresivo: $agresivaCount", Toast.LENGTH_SHORT).show()
+            Toast.makeText(applicationContext, "Agresiva: $agresivaCount", Toast.LENGTH_SHORT).show()
             Toast.makeText(applicationContext, "Normal: $normalCount", Toast.LENGTH_SHORT).show()
         }
     }
@@ -690,11 +690,12 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                         CellType.NUMERIC -> cell.numericCellValue
                         CellType.STRING -> {
                             val stringValue = cell.stringCellValue
-                            // Si el valor es numérico en forma de cadena, convertirlo
-                            if (stringValue.contains(",")) {
+                            // Verificar si el valor es "NaN" y manejarlo
+                            if (stringValue.equals("NaN", ignoreCase = true)) {
+                                ""  // O cualquier valor que desees usar en lugar de "NaN"
+                            } else if (stringValue.contains(",")) {
                                 // Reemplazar comas por puntos en números representados como cadenas
                                 val modifiedValue = stringValue.replace(",", ".")
-                                // Intentar convertirlo a Double
                                 try {
                                     modifiedValue.toDouble()
                                 } catch (e: NumberFormatException) {
