@@ -2,6 +2,7 @@ package com.example.obd2cloud
 
 import androidx.core.content.ContextCompat
 import android.os.Bundle
+import android.util.Log
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.github.mikephil.charting.charts.PieChart
@@ -11,6 +12,8 @@ import com.github.mikephil.charting.data.PieData
 import com.github.mikephil.charting.data.PieDataSet
 import com.github.mikephil.charting.data.PieEntry
 import com.github.mikephil.charting.utils.ColorTemplate
+import com.google.gson.Gson
+import java.io.File
 
 class PieChartActivity : AppCompatActivity() {
 
@@ -22,6 +25,9 @@ class PieChartActivity : AppCompatActivity() {
         val tranquiloCount = intent.getIntExtra("tranquilo", 0)
         val agresivoCount = intent.getIntExtra("agresiva", 0)
         val normalCount = intent.getIntExtra("normal", 0)
+        val fileNameJson = intent.getStringExtra("fileNameJson") ?: ""
+
+        Log.d("PieChartActivity", "Ruta al archivo: $fileNameJson")
 
         val total = tranquiloCount + agresivoCount + normalCount
 
@@ -35,6 +41,12 @@ class PieChartActivity : AppCompatActivity() {
         val tranquiloPercentage = if (total > 0) (tranquiloCount.toFloat() / total * 100) else 0f
         val agresivoPercentage = if (total > 0) (agresivoCount.toFloat() / total * 100) else 0f
         val normalPercentage = if (total > 0) (normalCount.toFloat() / total * 100) else 0f
+
+        // Cargar los datos del archivo JSON
+        val vehicleData = readVehicleData(fileNameJson)
+
+        Log.d("PieChartActivity", "Archivo JSON: $fileNameJson")
+        Log.d("PieChartActivity", "Datos cargados: ${vehicleData.size} registros")
 
         // Configurar el gráfico circular
         val pieChart: PieChart = findViewById(R.id.pieChart)
@@ -73,7 +85,10 @@ class PieChartActivity : AppCompatActivity() {
         val description = Description().apply {
             text = ""
             textSize = 16f
-            textColor = ContextCompat.getColor(this@PieChartActivity, R.color.red) // Usar ContextCompat para obtener el color
+            textColor = ContextCompat.getColor(
+                this@PieChartActivity,
+                R.color.red
+            ) // Usar ContextCompat para obtener el color
         }
 
         pieChart.description = description
@@ -81,24 +96,145 @@ class PieChartActivity : AppCompatActivity() {
         // Actualizar el gráfico
         pieChart.invalidate()
 
-        // Determinar el estilo predominante y mostrar el consejo
-        val consejoTextView: TextView = findViewById(R.id.consejoTextView)
-
         val estiloPredominante = when {
             tranquiloPercentage > agresivoPercentage && tranquiloPercentage > normalPercentage -> "tranquilo"
             agresivoPercentage > tranquiloPercentage && agresivoPercentage > normalPercentage -> "agresivo"
             else -> "normal"
         }
 
-        // Mostrar consejo basado en el estilo predominante
-        val consejo = when (estiloPredominante) {
-            "tranquilo" -> "¡Excelente! Tu estilo de conducción es tranquilo y seguro. Continúa manteniendo una velocidad moderada y respetando las normas de tráfico."
-            "agresivo" -> "¡Cuidado! Tu estilo de conducción es agresivo. Trata de reducir la velocidad y evitar aceleraciones bruscas para mejorar la seguridad."
-            "normal" -> "Tu estilo de conducción es bastante equilibrado. Mantén un enfoque constante y revisa siempre los límites de velocidad."
-            else -> "No hay un estilo predominante. Intenta mantener un ritmo de conducción consistente."
+        val advice = generateCustomAdvice(vehicleData, estiloPredominante)
+        val consejoTextView: TextView = findViewById(R.id.consejoTextView)
+        consejoTextView.text = advice
+    }
+
+    fun generateCustomAdvice(vehicleData: List<VehicleData>, estiloPredominante: String): String {
+        val averageSpeed = vehicleData.map { it.speed }.average()
+        val averageRpm = vehicleData.map { it.rpm }.average()
+        val averageFuelTrim = vehicleData.map { it.fuelTrim }.average()
+        val averageThrottlePosition = vehicleData.map { it.throttlePosition }.average()
+        val averageEngineLoad = vehicleData.map { it.engineLoad }.average()
+
+
+
+        // Consejos básicos basados en el estilo de conducción
+        var advice = ""
+
+        when (estiloPredominante) {
+            "tranquilo" -> {
+                advice = "¡Excelente! Tu estilo de conducción es tranquilo y seguro. "
+            }
+
+            "agresivo" -> {
+                advice = "¡Cuidado! Tu estilo de conducción es agresivo. "
+                if (averageRpm > 3000) {
+                    advice += "\nIntenta reducir las revoluciones del motor para evitar un consumo excesivo de combustible."
+                }
+                if (averageFuelTrim > 4.8) {
+                    advice += "\nTu mezcla de combustible puede estar desequilibrada. Trata de conducir de manera más suave para mejorar la eficiencia."
+                }
+            }
+
+            "normal" -> {
+                advice = "Tu estilo de conducción es bastante equilibrado. "
+                if (averageRpm > 2500) {
+                    advice += "\nEvita mantener el motor a altas revoluciones durante largos periodos para cuidar la vida útil del motor."
+                }
+            }
         }
 
-        // Establecer el texto del consejo en el TextView
-        consejoTextView.text = consejo
+        // Consejos adicionales basados en otros parámetros
+        if (averageSpeed > 100) {
+            advice += "\n¡Atención! Estás conduciendo a alta velocidad. Redúcela para mejorar la seguridad."
+        }
+
+        if (averageFuelTrim > 0.8) {
+            advice += "\nTu eficiencia de combustible podría mejorar. Intenta acelerar suavemente."
+        }
+
+        if (averageThrottlePosition > 35) {
+            advice += "\nTu posición del acelerador es alta. Intenta mantener una aceleración más suave para mejorar la eficiencia."
+        }
+
+        if (averageEngineLoad > 75) {
+            advice += "\nEl motor está trabajando con una carga elevada. Evita aceleraciones bruscas y mantén velocidades constantes."
+        }
+        return advice
+    }
+
+
+    fun readVehicleData(fileName: String): List<VehicleData> {
+        val file = File(fileName)
+        if (!file.exists()) {
+            Log.e("PieChartActivity", "Archivo JSON no encontrado: $fileName")
+            return emptyList()
+        }
+
+        if (file.readText().isEmpty()) {
+            Log.e("PieChartActivity", "Archivo JSON vacío: $fileName")
+            return emptyList()
+        }
+
+        return try {
+            val json = file.readText()
+            val gson = Gson()
+
+            // Parsear el JSON completo
+            val inputData = gson.fromJson(json, InputDataWrapper::class.java).input_data
+
+            // Mapear los datos de cada fila a la clase VehicleData
+            inputData.data.map { row ->
+                VehicleData(
+                    touchCount = row[0].toInt(),
+                    rpm = row[1].toInt(),
+                    fuelTrim = row[2].toFloat(),
+                    speed = row[3].toFloat(),
+                    throttlePosition = row[4].toFloat(),
+                    engineLoad = row[5].toFloat(),
+                    maxSpeed = row[6].toFloat(),
+                    gear = row[7].toInt(),
+                    gyroX = row[8].toFloat(),
+                    gyroY = row[9].toFloat(),
+                    gyroZ = row[10].toFloat(),
+                    accelX = row[11].toFloat(),
+                    accelY = row[12].toFloat(),
+                    accelZ = row[13].toFloat()
+                )
+            }
+        } catch (e: Exception) {
+            Log.e("PieChartActivity", "Error al procesar el archivo JSON: ${e.message}")
+            emptyList()
+        }
     }
 }
+
+    // Clase principal para el JSON completo
+    data class InputDataWrapper(
+        val input_data: InputData
+    )
+
+    // Clase para el campo "input_data"
+    data class InputData(
+        val columns: List<String>,
+        val index: List<Int>,
+        val data: List<List<Double>>
+    )
+
+    // Clase para los datos procesados
+    data class VehicleData(
+        val touchCount: Int,
+        val rpm: Int,
+        val fuelTrim: Float,
+        val speed: Float,
+        val throttlePosition: Float,
+        val engineLoad: Float,
+        val maxSpeed: Float,
+        val gear: Int,
+        val gyroX: Float,
+        val gyroY: Float,
+        val gyroZ: Float,
+        val accelX: Float,
+        val accelY: Float,
+        val accelZ: Float
+    )
+
+

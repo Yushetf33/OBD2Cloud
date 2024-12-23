@@ -104,6 +104,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
 
     private var fileName: String = "vehicle_data_${SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())}.xlsx" //cambiar extension para json o csv
     private var fileNameJson: String = "vehicle_data_${SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())}.json" //cambiar extension para json o csv
+    private var filePath: String = ""
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -319,10 +321,13 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                 intent.putExtra("tranquilo", responseCountMap["tranquilo"] ?: 0)
                 intent.putExtra("agresiva", responseCountMap["agresiva"] ?: 0)
                 intent.putExtra("normal", responseCountMap["normal"] ?: 0)
+                intent.putExtra("fileNameJson", filePath)
+                Log.d("MainActivity", "Archivo JSON enviandose a PieChartActivity: $filePath")
+
+
                 startActivity(intent)
                 return true
             }
-
         }
         return false
     }
@@ -465,7 +470,9 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     suspend fun processApiResponse(json: String, fileNameJson: String) {
         if (json.isNotEmpty()) {
             // Guardar el JSON en un archivo
-            val filePath = saveJsonToFile(json, fileNameJson)
+            filePath = saveJsonToFile(json, fileNameJson)
+            Log.d("MainActivity", "Archivo JSON guardado en: $filePath")
+            Log.d("MainActivity", "Contenido del archivo JSON: $json")
             try {
                 val api = ApiDrivingStyle(
                     "8mxnjCT74badfewKW4JtGZbs39skW3BD",
