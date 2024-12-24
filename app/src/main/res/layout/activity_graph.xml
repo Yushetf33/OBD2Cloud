@@ -9,6 +9,14 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
+
+        <com.github.mikephil.charting.charts.ScatterChart
+            android:id="@+id/rpmFuelTrimChart"
+            android:layout_width="match_parent"
+            android:layout_height="350dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp" />
+
         <!-- Gráfico de líneas para RPM -->
         <com.github.mikephil.charting.charts.LineChart
             android:id="@+id/rpmChart"
@@ -26,13 +34,6 @@
         <!-- Gráfico de barras para Engine Load -->
         <com.github.mikephil.charting.charts.BarChart
             android:id="@+id/engineLoadChart"
-            android:layout_width="match_parent"
-            android:layout_height="350dp"
-            android:layout_marginBottom="16dp"/>
-
-        <!-- Gráfico de dispersión para Acelerador vs RPM -->
-        <com.github.mikephil.charting.charts.ScatterChart
-            android:id="@+id/accelRpmChart"
             android:layout_width="match_parent"
             android:layout_height="350dp"
             android:layout_marginBottom="16dp"/>

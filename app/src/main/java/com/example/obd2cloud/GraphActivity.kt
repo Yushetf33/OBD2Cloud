@@ -23,7 +23,7 @@ class GraphActivity : AppCompatActivity() {
     private lateinit var rpmChart: LineChart
     private lateinit var speedChart: LineChart
     private lateinit var engineLoadChart: BarChart
-    private lateinit var accelRpmChart: ScatterChart
+    private lateinit var rpmFuelTrimChart: ScatterChart
     private lateinit var fuelTrimChart: BarChart
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,7 +33,7 @@ class GraphActivity : AppCompatActivity() {
         rpmChart = findViewById(R.id.rpmChart)
         speedChart = findViewById(R.id.speedChart)
         engineLoadChart = findViewById(R.id.engineLoadChart)
-        accelRpmChart = findViewById(R.id.accelRpmChart)
+        rpmFuelTrimChart= findViewById(R.id.rpmFuelTrimChart)
         fuelTrimChart = findViewById(R.id.fuelTrimChart)
 
         val fileNameJson = intent.getStringExtra("fileNameJson") ?: ""
@@ -42,7 +42,7 @@ class GraphActivity : AppCompatActivity() {
         setupRPMChart(vehicleData)
         setupSpeedChart(vehicleData)
         setupEngineLoadChart(vehicleData)
-        setupAccelRpmChart(vehicleData)
+        setupRpmFuelTrimChart(vehicleData)
         setupFuelTrimChart(vehicleData)
     }
 
@@ -193,36 +193,36 @@ class GraphActivity : AppCompatActivity() {
         }
     }
 
-    // Gráfico de dispersión para la posición del acelerador vs RPM
-    private fun setupAccelRpmChart(vehicleData: List<VehicleData>) {
+    // Gráfico de dispersión para RPM vs Fuel Trim
+    private fun setupRpmFuelTrimChart(vehicleData: List<VehicleData>) {
         val scatterEntries = ArrayList<Entry>()
 
         vehicleData.forEachIndexed { index, data ->
-            scatterEntries.add(Entry(data.throttlePosition, data.rpm.toFloat()))
+            scatterEntries.add(Entry(data.rpm.toFloat(), data.fuelTrim))
         }
 
-        val scatterDataSet = ScatterDataSet(scatterEntries, "Throttle vs RPM")
-        scatterDataSet.color = resources.getColor(android.R.color.holo_orange_light)
-        scatterDataSet.setDrawValues(false)
+        val scatterDataSet = ScatterDataSet(scatterEntries, "RPM vs Fuel Trim")
+        scatterDataSet.color = resources.getColor(android.R.color.holo_purple)  // Color para el gráfico
+        scatterDataSet.setDrawValues(false)  // Desactivar los valores sobre los puntos
 
         val scatterData = ScatterData(scatterDataSet)
-        accelRpmChart.data = scatterData
-        accelRpmChart.invalidate()
+        rpmFuelTrimChart.data = scatterData  // Reutilizar rpmFuelTrimChart para este nuevo gráfico
+        rpmFuelTrimChart.invalidate()
 
         // Personalizar el tamaño y color de las etiquetas
-        accelRpmChart.xAxis.apply {
+        rpmFuelTrimChart.xAxis.apply {
             textSize = 16f
         }
-        accelRpmChart.axisLeft.apply {
+        rpmFuelTrimChart.axisLeft.apply {
             textSize = 16f
         }
-        accelRpmChart.axisRight.apply {
+        rpmFuelTrimChart.axisRight.apply {
             textSize = 16f
         }
 
-        accelRpmChart.xAxis.isEnabled = false
-        accelRpmChart.axisRight.isEnabled = false  // Deshabilita el eje Y derecho
-        accelRpmChart.legend.apply {
+        rpmFuelTrimChart.xAxis.isEnabled = true  // Habilitar el eje X (RPM)
+        rpmFuelTrimChart.axisRight.isEnabled = false  // Deshabilitar el eje Y derecho
+        rpmFuelTrimChart.legend.apply {
             textSize = 16f  // Tamaño de la fuente
         }
     }
