@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Gráfico de líneas para RPM y velocidad -->
+        <com.github.mikephil.charting.charts.LineChart
+            android:id="@+id/rpmSpeedChart"
+            android:layout_width="match_parent"
+            android:layout_height="350dp"
+            android:layout_marginBottom="16dp"/>
+
+        <!-- Gráfico de barras para Engine Load -->
+        <com.github.mikephil.charting.charts.BarChart
+            android:id="@+id/engineLoadChart"
+            android:layout_width="match_parent"
+            android:layout_height="350dp"
+            android:layout_marginBottom="16dp"/>
+
+        <!-- Gráfico de dispersión para Acelerador vs RPM -->
+        <com.github.mikephil.charting.charts.ScatterChart
+            android:id="@+id/accelRpmChart"
+            android:layout_width="match_parent"
+            android:layout_height="350dp"
+            android:layout_marginBottom="16dp"/>
+
+        <!-- Gráfico de barras para Fuel Trim -->
+        <com.github.mikephil.charting.charts.BarChart
+            android:id="@+id/fuelTrimChart"
+            android:layout_width="match_parent"
+            android:layout_height="350dp"
+            android:layout_marginBottom="16dp"/>
+
+    </LinearLayout>
+
+</ScrollView>
