@@ -211,7 +211,7 @@ class GraphActivity : AppCompatActivity() {
 
         // Personalizar el tamaño y color de las etiquetas
         rpmFuelTrimChart.xAxis.apply {
-            textSize = 16f
+            textSize = 14f
         }
         rpmFuelTrimChart.axisLeft.apply {
             textSize = 16f
