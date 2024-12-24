@@ -1,8 +1,11 @@
 package com.example.obd2cloud
 
+import android.content.Intent
 import androidx.core.content.ContextCompat
 import android.os.Bundle
 import android.util.Log
+import android.view.View
+import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.github.mikephil.charting.charts.PieChart
@@ -26,10 +29,28 @@ class PieChartActivity : AppCompatActivity() {
         val agresivoCount = intent.getIntExtra("agresiva", 0)
         val normalCount = intent.getIntExtra("normal", 0)
         val fileNameJson = intent.getStringExtra("fileNameJson") ?: ""
-
-        Log.d("PieChartActivity", "Ruta al archivo: $fileNameJson")
-
         val total = tranquiloCount + agresivoCount + normalCount
+
+        val button: Button = findViewById(R.id.button)
+
+        // Verificar si hay datos antes de mostrar el botón
+        if (total == 0) {
+            button.visibility = View.GONE // Ocultar el botón si no hay datos
+            val consejoTextView: TextView = findViewById(R.id.consejoTextView)
+            consejoTextView.text = "" // No mostrar consejo si no hay datos
+            return // Salir del método sin continuar con el gráfico y los consejos
+        } else {
+            button.visibility = View.VISIBLE // Mostrar el botón si hay datos
+        }
+
+        button.setOnClickListener {
+            // Crear Intent para abrir GraphActivity
+            val intent = Intent(this, GraphActivity::class.java)
+            intent.putExtra("fileNameJson", fileNameJson)
+
+            startActivity(intent)
+        }
+
 
         // Verificar si el total es cero, es decir, si no hay datos
         if (total == 0) {
@@ -206,35 +227,4 @@ class PieChartActivity : AppCompatActivity() {
         }
     }
 }
-
-    // Clase principal para el JSON completo
-    data class InputDataWrapper(
-        val input_data: InputData
-    )
-
-    // Clase para el campo "input_data"
-    data class InputData(
-        val columns: List<String>,
-        val index: List<Int>,
-        val data: List<List<Double>>
-    )
-
-    // Clase para los datos procesados
-    data class VehicleData(
-        val touchCount: Int,
-        val rpm: Int,
-        val fuelTrim: Float,
-        val speed: Float,
-        val throttlePosition: Float,
-        val engineLoad: Float,
-        val maxSpeed: Float,
-        val gear: Int,
-        val gyroX: Float,
-        val gyroY: Float,
-        val gyroZ: Float,
-        val accelX: Float,
-        val accelY: Float,
-        val accelZ: Float
-    )
-
 

@@ -39,6 +39,8 @@
 
         <activity android:name="com.example.obd2cloud.PieChartActivity" />
 
+        <activity android:name="com.example.obd2cloud.GraphActivity" />
+
 
         <activity
             android:name=".MainActivity"
