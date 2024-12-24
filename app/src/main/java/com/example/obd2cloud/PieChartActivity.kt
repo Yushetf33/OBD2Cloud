@@ -94,7 +94,7 @@ class PieChartActivity : AppCompatActivity() {
         // Personalizar la leyenda
         val legend: Legend = pieChart.legend
         legend.textSize = 18f  // Tamaño de la letra de la leyenda
-        legend.textColor = ContextCompat.getColor(this@PieChartActivity, R.color.red)
+
         // Configurar los márgenes de la leyenda (con espacio entre la leyenda y el gráfico)
         legend.xEntrySpace = 20f  // Espacio entre los elementos de la leyenda
         legend.yEntrySpace = 10f  // Espacio entre las filas de la leyenda

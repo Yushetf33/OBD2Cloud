@@ -9,9 +9,16 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Gráfico de líneas para RPM y velocidad -->
+        <!-- Gráfico de líneas para RPM -->
         <com.github.mikephil.charting.charts.LineChart
-            android:id="@+id/rpmSpeedChart"
+            android:id="@+id/rpmChart"
+            android:layout_width="match_parent"
+            android:layout_height="350dp"
+            android:layout_marginBottom="16dp"/>
+
+        <!-- Gráfico de líneas para velocidad -->
+        <com.github.mikephil.charting.charts.LineChart
+            android:id="@+id/speedChart"
             android:layout_width="match_parent"
             android:layout_height="350dp"
             android:layout_marginBottom="16dp"/>

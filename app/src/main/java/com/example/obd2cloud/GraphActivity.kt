@@ -2,10 +2,12 @@ package com.example.obd2cloud
 
 import android.os.Bundle
 import android.util.Log
+import androidx.core.content.ContextCompat
 import androidx.appcompat.app.AppCompatActivity
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.charts.ScatterChart
+import com.github.mikephil.charting.components.Legend
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
@@ -18,7 +20,8 @@ import java.io.File
 
 class GraphActivity : AppCompatActivity() {
 
-    private lateinit var rpmSpeedChart: LineChart
+    private lateinit var rpmChart: LineChart
+    private lateinit var speedChart: LineChart
     private lateinit var engineLoadChart: BarChart
     private lateinit var accelRpmChart: ScatterChart
     private lateinit var fuelTrimChart: BarChart
@@ -27,7 +30,8 @@ class GraphActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_graph)
 
-        rpmSpeedChart = findViewById(R.id.rpmSpeedChart)
+        rpmChart = findViewById(R.id.rpmChart)
+        speedChart = findViewById(R.id.speedChart)
         engineLoadChart = findViewById(R.id.engineLoadChart)
         accelRpmChart = findViewById(R.id.accelRpmChart)
         fuelTrimChart = findViewById(R.id.fuelTrimChart)
@@ -35,11 +39,13 @@ class GraphActivity : AppCompatActivity() {
         val fileNameJson = intent.getStringExtra("fileNameJson") ?: ""
         val vehicleData = readVehicleData(fileNameJson)
 
-        setupRPMAndSpeedChart(vehicleData)
+        setupRPMChart(vehicleData)
+        setupSpeedChart(vehicleData)
         setupEngineLoadChart(vehicleData)
         setupAccelRpmChart(vehicleData)
         setupFuelTrimChart(vehicleData)
     }
+
 
     fun readVehicleData(fileName: String): List<VehicleData> {
         val file = File(fileName)
@@ -85,45 +91,73 @@ class GraphActivity : AppCompatActivity() {
         }
     }
 
-    // Gráfico de líneas para RPM y velocidad
-    private fun setupRPMAndSpeedChart(vehicleData: List<VehicleData>) {
+    // Gráfico de líneas para RPM
+    private fun setupRPMChart(vehicleData: List<VehicleData>) {
         val rpmEntries = ArrayList<Entry>()
-        val speedEntries = ArrayList<Entry>()
 
         vehicleData.forEachIndexed { index, data ->
             rpmEntries.add(Entry(index.toFloat(), data.rpm.toFloat()))
-            speedEntries.add(Entry(index.toFloat(), data.speed))
         }
 
         val rpmDataSet = LineDataSet(rpmEntries, "RPM")
         rpmDataSet.color = resources.getColor(android.R.color.holo_red_light)
         rpmDataSet.setDrawCircles(false)
+        rpmDataSet.setDrawValues(false) // Ocultar los valores en el gráfico
+
+        val lineData = LineData(rpmDataSet)
+        rpmChart.data = lineData
+        rpmChart.invalidate()
+
+        // Personalizar el tamaño y color de las etiquetas
+        rpmChart.xAxis.apply {
+            textSize = 16f
+        }
+        rpmChart.axisLeft.apply {
+            textSize = 16f
+        }
+        rpmChart.axisRight.apply {
+            textSize = 16f
+        }
+
+        rpmChart.xAxis.isEnabled = false
+        rpmChart.axisRight.isEnabled = false  // Deshabilita el eje Y derecho
+        rpmChart.legend.apply {
+            textSize = 16f  // Tamaño de la fuente
+        }
+    }
+
+    private fun setupSpeedChart(vehicleData: List<VehicleData>) {
+        val speedEntries = ArrayList<Entry>()
+
+        vehicleData.forEachIndexed { index, data ->
+            speedEntries.add(Entry(index.toFloat(), data.speed))
+        }
 
         val speedDataSet = LineDataSet(speedEntries, "Speed")
         speedDataSet.color = resources.getColor(android.R.color.holo_blue_light)
         speedDataSet.setDrawCircles(false)
+        speedDataSet.setDrawValues(false)
 
-        val lineData = LineData(rpmDataSet, speedDataSet)
-        rpmSpeedChart.data = lineData
-        rpmSpeedChart.invalidate()
+        val lineData = LineData(speedDataSet)
+        speedChart.data = lineData
+        speedChart.invalidate()
 
         // Personalizar el tamaño y color de las etiquetas
-        rpmSpeedChart.xAxis.apply {
+        speedChart.xAxis.apply {
             textSize = 16f
-            textColor = resources.getColor(android.R.color.holo_red_dark)
         }
-        rpmSpeedChart.axisLeft.apply {
+        speedChart.axisLeft.apply {
             textSize = 16f
-            textColor = resources.getColor(android.R.color.holo_red_dark)
         }
-        rpmSpeedChart.axisRight.apply {
+        speedChart.axisRight.apply {
             textSize = 16f
-            textColor = resources.getColor(android.R.color.holo_red_dark)
         }
 
-        rpmSpeedChart.axisRight.isEnabled = false  // Deshabilita el eje Y derecho
-        rpmSpeedChart.legend.textSize = 16f
-
+        speedChart.xAxis.isEnabled = false
+        speedChart.axisRight.isEnabled = false  // Deshabilita el eje Y derecho
+        speedChart.legend.apply {
+            textSize = 16f  // Tamaño de la fuente
+        }
     }
 
     // Gráfico de barras para Engine Load
@@ -136,7 +170,7 @@ class GraphActivity : AppCompatActivity() {
 
         val engineLoadDataSet = BarDataSet(engineLoadEntries, "Engine Load")
         engineLoadDataSet.color = resources.getColor(android.R.color.holo_green_light)
-
+        engineLoadDataSet.setDrawValues(false)
         val barData = BarData(engineLoadDataSet)
         engineLoadChart.data = barData
         engineLoadChart.invalidate()
@@ -144,19 +178,19 @@ class GraphActivity : AppCompatActivity() {
         // Personalizar el tamaño y color de las etiquetas
         engineLoadChart.xAxis.apply {
             textSize = 16f
-            textColor = resources.getColor(android.R.color.holo_red_dark)
         }
         engineLoadChart.axisLeft.apply {
             textSize = 16f
-            textColor = resources.getColor(android.R.color.holo_red_dark)
         }
         engineLoadChart.axisRight.apply {
             textSize = 16f
-            textColor = resources.getColor(android.R.color.holo_red_dark)
         }
 
-        engineLoadChart.axisRight.isEnabled = false  // Deshabilita el eje Y derecho
-        engineLoadChart.legend.textSize = 16f
+        engineLoadChart.xAxis.isEnabled = false
+        engineLoadChart.axisRight.isEnabled = false
+        engineLoadChart.legend.apply {
+            textSize = 16f  // Tamaño de la fuente
+        }
     }
 
     // Gráfico de dispersión para la posición del acelerador vs RPM
@@ -169,6 +203,7 @@ class GraphActivity : AppCompatActivity() {
 
         val scatterDataSet = ScatterDataSet(scatterEntries, "Throttle vs RPM")
         scatterDataSet.color = resources.getColor(android.R.color.holo_orange_light)
+        scatterDataSet.setDrawValues(false)
 
         val scatterData = ScatterData(scatterDataSet)
         accelRpmChart.data = scatterData
@@ -177,19 +212,19 @@ class GraphActivity : AppCompatActivity() {
         // Personalizar el tamaño y color de las etiquetas
         accelRpmChart.xAxis.apply {
             textSize = 16f
-            textColor = resources.getColor(android.R.color.holo_red_dark)
         }
         accelRpmChart.axisLeft.apply {
             textSize = 16f
-            textColor = resources.getColor(android.R.color.holo_red_dark)
         }
         accelRpmChart.axisRight.apply {
             textSize = 16f
-            textColor = resources.getColor(android.R.color.holo_red_dark)
         }
 
+        accelRpmChart.xAxis.isEnabled = false
         accelRpmChart.axisRight.isEnabled = false  // Deshabilita el eje Y derecho
-        accelRpmChart.legend.textSize = 16f
+        accelRpmChart.legend.apply {
+            textSize = 16f  // Tamaño de la fuente
+        }
     }
 
     // Gráfico de barras para Fuel Trim
@@ -202,6 +237,7 @@ class GraphActivity : AppCompatActivity() {
 
         val fuelTrimDataSet = BarDataSet(fuelTrimEntries, "Fuel Trim")
         fuelTrimDataSet.color = resources.getColor(android.R.color.holo_blue_light)
+        fuelTrimDataSet.setDrawValues(false)
 
         val barData = BarData(fuelTrimDataSet)
         fuelTrimChart.data = barData
@@ -210,17 +246,17 @@ class GraphActivity : AppCompatActivity() {
         // Personalizar el tamaño y color de las etiquetas
         fuelTrimChart.xAxis.apply {
             textSize = 16f
-            textColor = resources.getColor(android.R.color.holo_red_dark)
         }
         fuelTrimChart.axisLeft.apply {
             textSize = 16f
-            textColor = resources.getColor(android.R.color.holo_red_dark)
         }
         fuelTrimChart.axisRight.apply {
             textSize = 16f
-            textColor = resources.getColor(android.R.color.holo_red_dark)
         }
         fuelTrimChart.axisRight.isEnabled = false  // Deshabilita el eje Y derecho
-        fuelTrimChart.legend.textSize = 16f
+        fuelTrimChart.xAxis.isEnabled = false
+        fuelTrimChart.legend.apply {
+            textSize = 16f  // Tamaño de la fuente
+        }
     }
 }
