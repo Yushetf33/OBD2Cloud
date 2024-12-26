@@ -8,8 +8,8 @@ import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import com.github.mikephil.charting.charts.PieChart
-import com.github.mikephil.charting.components.Description
 import com.github.mikephil.charting.components.Legend
 import com.github.mikephil.charting.data.PieData
 import com.github.mikephil.charting.data.PieDataSet
@@ -23,6 +23,15 @@ class PieChartActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_pie_chart)
+
+        // Detectar el modo oscuro o claro
+        val isNightMode = AppCompatDelegate.getDefaultNightMode() == AppCompatDelegate.MODE_NIGHT_YES
+
+        var textColor = if (!isNightMode) {
+            ContextCompat.getColor(this, R.color.white)
+        } else {
+            ContextCompat.getColor(this, R.color.black)
+        }
 
         // Obtener los valores enviados desde MainActivity
         val tranquiloCount = intent.getIntExtra("tranquilo", 0)
@@ -71,6 +80,8 @@ class PieChartActivity : AppCompatActivity() {
 
         // Configurar el gráfico circular
         val pieChart: PieChart = findViewById(R.id.pieChart)
+        pieChart.setEntryLabelColor(textColor)
+        pieChart.legend.textColor = textColor
 
         // Crear las entradas para el gráfico
         val entries = mutableListOf<PieEntry>()
@@ -102,17 +113,6 @@ class PieChartActivity : AppCompatActivity() {
         legend.formSize = 14f // Tamaño de los cuadros de la leyenda
 
 
-        // Crear la descripción del gráfico
-        val description = Description().apply {
-            text = ""
-            textSize = 16f
-            textColor = ContextCompat.getColor(
-                this@PieChartActivity,
-                R.color.red
-            ) // Usar ContextCompat para obtener el color
-        }
-
-        pieChart.description = description
 
         // Actualizar el gráfico
         pieChart.invalidate()

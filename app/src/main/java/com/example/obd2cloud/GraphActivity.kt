@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.charts.ScatterChart
@@ -36,14 +37,21 @@ class GraphActivity : AppCompatActivity() {
         rpmFuelTrimChart= findViewById(R.id.rpmFuelTrimChart)
         fuelTrimChart = findViewById(R.id.fuelTrimChart)
 
+        val isNightMode = AppCompatDelegate.getDefaultNightMode() == AppCompatDelegate.MODE_NIGHT_YES
+        var legendColor = if (!isNightMode) {
+            ContextCompat.getColor(this, R.color.white)
+        } else {
+            ContextCompat.getColor(this, R.color.black)
+        }
+
         val fileNameJson = intent.getStringExtra("fileNameJson") ?: ""
         val vehicleData = readVehicleData(fileNameJson)
 
-        setupRPMChart(vehicleData)
-        setupSpeedChart(vehicleData)
-        setupEngineLoadChart(vehicleData)
-        setupRpmFuelTrimChart(vehicleData)
-        setupFuelTrimChart(vehicleData)
+        setupRPMChart(vehicleData, legendColor)
+        setupSpeedChart(vehicleData, legendColor)
+        setupEngineLoadChart(vehicleData, legendColor)
+        setupRpmFuelTrimChart(vehicleData, legendColor)
+        setupFuelTrimChart(vehicleData, legendColor)
     }
 
 
@@ -92,7 +100,7 @@ class GraphActivity : AppCompatActivity() {
     }
 
     // Gráfico de líneas para RPM
-    private fun setupRPMChart(vehicleData: List<VehicleData>) {
+    private fun setupRPMChart(vehicleData: List<VehicleData>, legendColor: Int) {
         val rpmEntries = ArrayList<Entry>()
 
         vehicleData.forEachIndexed { index, data ->
@@ -111,9 +119,11 @@ class GraphActivity : AppCompatActivity() {
         // Personalizar el tamaño y color de las etiquetas
         rpmChart.xAxis.apply {
             textSize = 16f
+            textColor = legendColor
         }
         rpmChart.axisLeft.apply {
             textSize = 16f
+            textColor = legendColor
         }
         rpmChart.axisRight.apply {
             textSize = 16f
@@ -123,10 +133,11 @@ class GraphActivity : AppCompatActivity() {
         rpmChart.axisRight.isEnabled = false  // Deshabilita el eje Y derecho
         rpmChart.legend.apply {
             textSize = 16f  // Tamaño de la fuente
+            textColor = legendColor
         }
     }
 
-    private fun setupSpeedChart(vehicleData: List<VehicleData>) {
+    private fun setupSpeedChart(vehicleData: List<VehicleData>, legendColor: Int) {
         val speedEntries = ArrayList<Entry>()
 
         vehicleData.forEachIndexed { index, data ->
@@ -145,9 +156,11 @@ class GraphActivity : AppCompatActivity() {
         // Personalizar el tamaño y color de las etiquetas
         speedChart.xAxis.apply {
             textSize = 16f
+            textColor = legendColor
         }
         speedChart.axisLeft.apply {
             textSize = 16f
+            textColor = legendColor
         }
         speedChart.axisRight.apply {
             textSize = 16f
@@ -157,11 +170,12 @@ class GraphActivity : AppCompatActivity() {
         speedChart.axisRight.isEnabled = false  // Deshabilita el eje Y derecho
         speedChart.legend.apply {
             textSize = 16f  // Tamaño de la fuente
+            textColor = legendColor
         }
     }
 
     // Gráfico de barras para Engine Load
-    private fun setupEngineLoadChart(vehicleData: List<VehicleData>) {
+    private fun setupEngineLoadChart(vehicleData: List<VehicleData>, legendColor: Int) {
         val engineLoadEntries = ArrayList<com.github.mikephil.charting.data.BarEntry>()
 
         vehicleData.forEachIndexed { index, data ->
@@ -178,9 +192,11 @@ class GraphActivity : AppCompatActivity() {
         // Personalizar el tamaño y color de las etiquetas
         engineLoadChart.xAxis.apply {
             textSize = 16f
+            textColor = legendColor
         }
         engineLoadChart.axisLeft.apply {
             textSize = 16f
+            textColor = legendColor
         }
         engineLoadChart.axisRight.apply {
             textSize = 16f
@@ -190,11 +206,12 @@ class GraphActivity : AppCompatActivity() {
         engineLoadChart.axisRight.isEnabled = false
         engineLoadChart.legend.apply {
             textSize = 16f  // Tamaño de la fuente
+            textColor = legendColor
         }
     }
 
     // Gráfico de dispersión para RPM vs Fuel Trim
-    private fun setupRpmFuelTrimChart(vehicleData: List<VehicleData>) {
+    private fun setupRpmFuelTrimChart(vehicleData: List<VehicleData>, legendColor: Int) {
         val scatterEntries = ArrayList<Entry>()
 
         vehicleData.forEachIndexed { index, data ->
@@ -212,9 +229,11 @@ class GraphActivity : AppCompatActivity() {
         // Personalizar el tamaño y color de las etiquetas
         rpmFuelTrimChart.xAxis.apply {
             textSize = 14f
+            textColor = legendColor
         }
         rpmFuelTrimChart.axisLeft.apply {
             textSize = 16f
+            textColor = legendColor
         }
         rpmFuelTrimChart.axisRight.apply {
             textSize = 16f
@@ -224,11 +243,12 @@ class GraphActivity : AppCompatActivity() {
         rpmFuelTrimChart.axisRight.isEnabled = false  // Deshabilitar el eje Y derecho
         rpmFuelTrimChart.legend.apply {
             textSize = 16f  // Tamaño de la fuente
+            textColor = legendColor
         }
     }
 
     // Gráfico de barras para Fuel Trim
-    private fun setupFuelTrimChart(vehicleData: List<VehicleData>) {
+    private fun setupFuelTrimChart(vehicleData: List<VehicleData>, legendColor: Int) {
         val fuelTrimEntries = ArrayList<com.github.mikephil.charting.data.BarEntry>()
 
         vehicleData.forEachIndexed { index, data ->
@@ -246,9 +266,11 @@ class GraphActivity : AppCompatActivity() {
         // Personalizar el tamaño y color de las etiquetas
         fuelTrimChart.xAxis.apply {
             textSize = 16f
+            textColor = legendColor
         }
         fuelTrimChart.axisLeft.apply {
             textSize = 16f
+            textColor = legendColor
         }
         fuelTrimChart.axisRight.apply {
             textSize = 16f
@@ -257,6 +279,7 @@ class GraphActivity : AppCompatActivity() {
         fuelTrimChart.xAxis.isEnabled = false
         fuelTrimChart.legend.apply {
             textSize = 16f  // Tamaño de la fuente
+            textColor = legendColor
         }
     }
 }
