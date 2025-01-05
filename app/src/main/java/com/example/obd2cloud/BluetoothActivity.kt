@@ -6,7 +6,6 @@ import android.Manifest.permission.BLUETOOTH
 import android.Manifest.permission.BLUETOOTH_ADMIN
 import android.Manifest.permission.BLUETOOTH_CONNECT
 import android.Manifest.permission.BLUETOOTH_SCAN
-import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
@@ -18,7 +17,6 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.util.Log
 import android.view.View
 import android.widget.AdapterView.OnItemClickListener
 import android.widget.ArrayAdapter
@@ -53,7 +51,6 @@ class BluetoothActivity : AppCompatActivity(), View.OnClickListener {
     private lateinit var start_bt: Button
     private lateinit var stop_bt: Button
 
-    // Function to check and request permission.
     @RequiresApi(Build.VERSION_CODES.S)
     private fun checkBtPermissions() {
         val requiredPermissions = arrayOf(
@@ -76,7 +73,7 @@ class BluetoothActivity : AppCompatActivity(), View.OnClickListener {
                 BLUETOOTH_CODE
             )
         } else {
-            initBluetooth() // Initialize Bluetooth if permissions are already granted
+            initBluetooth()
         }
     }
 

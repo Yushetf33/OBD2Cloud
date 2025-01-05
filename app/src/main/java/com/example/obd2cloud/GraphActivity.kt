@@ -8,7 +8,6 @@ import androidx.appcompat.app.AppCompatDelegate
 import com.github.mikephil.charting.charts.LineChart
 import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.charts.ScatterChart
-import com.github.mikephil.charting.components.Legend
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet

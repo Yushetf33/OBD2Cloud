@@ -3,6 +3,7 @@
 package com.example.obd2cloud
 
 import android.bluetooth.BluetoothAdapter
+import java.text.DecimalFormat
 import android.bluetooth.BluetoothDevice
 import android.content.Context
 import android.content.Intent
@@ -50,6 +51,7 @@ import java.util.Locale
 import org.apache.poi.ss.usermodel.Workbook
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import java.io.FileOutputStream
+import java.text.DecimalFormatSymbols
 
 class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListener {
     private var menu: Menu? = null
@@ -581,7 +583,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
 
     private fun logMetricsToExcel(fileName: String) {
         val gearAux = currentGear.toString()
-        val column22 = "0".toString()
+        val column22 = "0"
         val dir = File(getExternalFilesDir(null), "MyAppData")
         Log.d("Excel", "Directory: ${dir.absolutePath}")
         if (!dir.exists()) {
@@ -594,6 +596,14 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         Log.d("Excel", "File: ${file.absolutePath}")
 
         try {
+            val df = DecimalFormat("#.######", DecimalFormatSymbols(Locale.US)) // Limitar a 6 decimales
+
+            val gyroX = currentGyroX?.replace(",", ".")?.toDoubleOrNull() ?: 0.0
+            val gyroY = currentGyroY?.replace(",", ".")?.toDoubleOrNull() ?: 0.0
+            val gyroZ = currentGyroZ?.replace(",", ".")?.toDoubleOrNull() ?: 0.0
+            val accelX = currentAccelX?.replace(",", ".")?.toDoubleOrNull() ?: 0.0
+            val accelY = currentAccelY?.replace(",", ".")?.toDoubleOrNull() ?: 0.0
+            val accelZ = currentAccelZ?.replace(",", ".")?.toDoubleOrNull() ?: 0.0
             // Crear o cargar el archivo Excel
             val workbook: Workbook = if (file.exists()) {
                 XSSFWorkbook(file.inputStream()) // Cargar el archivo existente
@@ -640,12 +650,12 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
             currentRow.createCell(5).setCellValue(currentEngineLoad)
             currentRow.createCell(6).setCellValue(currentMaxSpeed)
             currentRow.createCell(7).setCellValue(gearAux)
-            currentRow.createCell(8).setCellValue(currentGyroX)
-            currentRow.createCell(9).setCellValue(currentGyroY)
-            currentRow.createCell(10).setCellValue(currentGyroZ)
-            currentRow.createCell(11).setCellValue(currentAccelX)
-            currentRow.createCell(12).setCellValue(currentAccelY)
-            currentRow.createCell(13).setCellValue(currentAccelZ)
+            currentRow.createCell(8).setCellValue(df.format(gyroX).toDouble())
+            currentRow.createCell(9).setCellValue(df.format(gyroY).toDouble())
+            currentRow.createCell(10).setCellValue(df.format(gyroZ).toDouble())
+            currentRow.createCell(11).setCellValue(df.format(accelX).toDouble())
+            currentRow.createCell(12).setCellValue(df.format(accelY).toDouble())
+            currentRow.createCell(13).setCellValue(df.format(accelZ).toDouble())
             currentRow.createCell(14).setCellValue(column22)
 
 
