@@ -50,7 +50,6 @@ class BluetoothClient(private val device: BluetoothDevice) {
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
 
         if (!bluetoothAdapter.isEnabled) {
-            Log.e("BluetoothClient", "Bluetooth is not enabled")
             return@withContext false
         }
 
@@ -63,7 +62,6 @@ class BluetoothClient(private val device: BluetoothDevice) {
             obdConnection = ObdDeviceConnection(inputStream, outputStream)
             torqueATInit()
             delay(1000)
-            Log.d("OBD connection", "OBD connection established")
             true
         } catch (e: IOException) {
             Log.e("BluetoothClient", "Connection error: ${e.message}", e)
@@ -75,10 +73,8 @@ class BluetoothClient(private val device: BluetoothDevice) {
         return withContext(Dispatchers.IO) {
             try {
                 clearInputStream()
-                Log.d("OBD", "Sending RPM command")
                 val aux: ObdResponse = obdConnection.run(RPMCommand(), delayTime = 10)
                 if (aux.rawResponse.value.contains("410C")) {
-                    Log.d("OBD", "RPM Response: ${aux.formattedValue}")
                     aux.value
                 } else {
                     Log.e("OBD", "Invalid RPM response: ${aux.rawResponse}")
@@ -95,10 +91,8 @@ class BluetoothClient(private val device: BluetoothDevice) {
         return withContext(Dispatchers.IO) {
             try {
                 clearInputStream()
-                Log.d("OBD", "Sending Speed command")
                 val aux: ObdResponse = obdConnection.run(SpeedCommand(), delayTime = 10)
                 if (aux.rawResponse.value.contains("410D")) {
-                    Log.d("OBD", "Speed Response: ${aux.formattedValue}")
                     aux.value
                 } else {
                     Log.e("OBD", "Invalid Speed response: ${aux.rawResponse}")
@@ -115,10 +109,8 @@ class BluetoothClient(private val device: BluetoothDevice) {
         return withContext(Dispatchers.IO) {
             try {
                 clearInputStream()
-                Log.d("OBD", "Sending Throttle Position command")
                 val aux: ObdResponse = obdConnection.run(ThrottlePositionCommand(), delayTime = 10)
                 if (aux.rawResponse.value.contains("4111")) {
-                    Log.d("OBD", "Throttle Position Response: ${aux.formattedValue}")
                     aux.value
                 } else {
                     Log.e("OBD", "Invalid Throttle Position response: ${aux.rawResponse}")
@@ -135,10 +127,8 @@ class BluetoothClient(private val device: BluetoothDevice) {
         return withContext(Dispatchers.IO) {
             try {
                 clearInputStream()
-                Log.d("OBD", "Sending Engine Load command")
                 val aux: ObdResponse = obdConnection.run(LoadCommand(), delayTime = 10)
                 if (aux.rawResponse.value.contains("4104")) {
-                    Log.d("OBD", "Engine Load Response: ${aux.formattedValue}")
                     aux.value
                 } else {
                     Log.e("OBD", "Invalid Engine Load response: ${aux.rawResponse}")
@@ -155,19 +145,16 @@ class BluetoothClient(private val device: BluetoothDevice) {
         return withContext(Dispatchers.IO) {
             try {
                 clearInputStream()
-                Log.d("OBD", "Sending Fuel Trim Short command")
                 val aux: ObdResponse = obdConnection.run(FuelTrimCommand(FuelTrimCommand.FuelTrimBank.SHORT_TERM_BANK_1), delayTime = 10)
-                Log.d("OBD", "Raw Fuel Trim Response: ${aux.rawResponse.value}")
 
                 if (aux.rawResponse.value.contains("4106")) {
-                    Log.d("OBD", "Fuel Trim Short Response: ${aux.formattedValue}")
                     aux.value
                 } else {
                     Log.e("OBD", "Fuel Trim Short response: ${aux.rawResponse}")
                     "!DATA"
                 }
             } catch (e: Exception) {
-                Log.e("OBD", "Error fetching Mass Air Flow", e)
+                Log.e("OBD", "Error fetching Fuel Trim Short", e)
                 "?NaN"
             }
         }

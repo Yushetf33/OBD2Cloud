@@ -40,13 +40,18 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import okio.IOException
 import org.apache.poi.ss.usermodel.CellType
 import org.json.JSONObject
 import org.json.JSONException
 import java.io.File
 import java.util.Date
 import java.io.FileWriter
-import java.io.IOException
 import java.util.Locale
 import org.apache.poi.ss.usermodel.Workbook
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
@@ -76,6 +81,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
 
     private lateinit var locationService: LocationService
     private lateinit var openStreetMapService: OpenStreetMapService
+    private lateinit var hereMapsService: HereMapsService
     private lateinit var permisoUbicacionLauncher: ActivityResultLauncher<String>
     private val handler = android.os.Handler(Looper.getMainLooper())
     private lateinit var runnable: Runnable
@@ -108,15 +114,26 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     private var fileNameJson: String = "vehicle_data_${SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())}.json" //cambiar extension para json o csv
     private var filePath: String = ""
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
+        setupToolbar()
+        initializeUI()
+        initializeSensors()
+        initializeServices()
+        initializePermissionLauncher()
+    }
+
+    // Configurar la barra de herramientas
+    private fun setupToolbar() {
         val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
+    }
 
+    // Inicializar los elementos de la interfaz de usuario
+    private fun initializeUI() {
         connection_status = findViewById(R.id.connection_indicator)
         speed_display = findViewById(R.id.speed_display)
         RPM_display = findViewById(R.id.RPM_display)
@@ -125,56 +142,38 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         throttle_display = findViewById(R.id.throttle_display)
         maxSpeed_display = findViewById(R.id.maxSpeed_display)
         engine_load_display = findViewById(R.id.engine_load_display)
-
         stop = findViewById(R.id.stop)
+
         stop.setOnClickListener(this)
         stop.isEnabled = false
-
         connection_status.text = getString(R.string.not_connected)
+    }
 
-        // Inicializar sensores
+    // Inicializar y registrar sensores
+    private fun initializeSensors() {
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
 
-        // Registrar listeners de los sensores
         sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_NORMAL)
-        sensorManager.registerListener(
-            this,
-            accelerometer,
-            SensorManager.SENSOR_DELAY_NORMAL
-        )
-
-        // Inicializar LocationService y OpenStreetMapService
-        locationService = LocationService(this)
-        openStreetMapService = OpenStreetMapService(locationService)
-
-        // Inicializar el lanzador de permiso
-        permisoUbicacionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-            if (isGranted) {
-                obtenerMaxSpeed()
-            } else {
-                Toast.makeText(this, "Permiso de ubicación denegado", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        // Solicitar permisos de ubicación
-        solicitarPermisos()
-        startMaxSpeedLoop()
+        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL)
     }
 
+    // Inicializar servicios de ubicación y mapas
+    private fun initializeServices() {
+        locationService = LocationService(this)
+        openStreetMapService = OpenStreetMapService(locationService)
+        hereMapsService = HereMapsService(locationService, "j0X98rWu-6X7IndOqpQl5b5pFuwuC8BxM4oQlEWAI_4")
+    }
 
-    private fun startMaxSpeedLoop() {
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                while (isActive) { // El bucle continuará mientras la coroutine esté activa
-                    obtenerMaxSpeed() // Realiza la consulta
-                    delay(3000) // Espera 3 segundos
+    private fun initializePermissionLauncher() {
+        permisoUbicacionLauncher =
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+                if (!isGranted) {
+                    Toast.makeText(this, "Permiso de ubicación denegado", Toast.LENGTH_SHORT).show()
                 }
-            } catch (e: Exception) {
-                Log.e("MainActivity", "Error en startMaxSpeedLoop: ${e.message}")
+                solicitarPermisos()
             }
-        }
     }
 
     private fun calcularRadioPorVelocidad(velocidad: String?): Int {
@@ -200,8 +199,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                 // Realiza la solicitud a OpenStreetMap con el radio ajustado
                 openStreetMapService.obtenerMaxSpeed(radioDinamico) { resultado ->
                     if (resultado != null) {
-                        // Imprime la respuesta de la API en el log
-                        //Log.d("MainActivity", "Respuesta de la API: $resultado")
 
                         try {
                             val jsonObject = JSONObject(resultado)
@@ -229,10 +226,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                                     velocidadAnterior = mostFrequentMaxSpeed // Actualiza la velocidad anterior
                                     currentMaxSpeed = velocidadAnterior.toString()
                                     maxSpeed_display.text = mostFrequentMaxSpeed
-                                    //Log.d("MainActivity", "Velocidad máxima: $mostFrequentMaxSpeed")
                                 } else {
                                     maxSpeed_display.text = velocidadAnterior ?: "N/A" // Muestra la velocidad anterior si no hay resultados
-                                    Log.d("MainActivity", "No se encontraron valores de maxspeed. Mostrando velocidad anterior: ${velocidadAnterior ?: "N/A"}")
                                 }
                             }
 
@@ -253,6 +248,58 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         }
     }
 
+    private fun obtenerMaxSpeedFromHereMaps() {
+        hereMapsService.obtenerMaxSpeed { responseData ->
+            runOnUiThread {
+                if (responseData != null) {
+                    val maxSpeed = parsearMaxSpeed(responseData)
+                    maxSpeed_display.text = maxSpeed ?: "Sin datos"
+                } else {
+                    maxSpeed_display.text = "Error al obtener datos"
+                }
+            }
+        }
+    }
+
+    private fun parsearMaxSpeed(jsonResponse: String): String? {
+        return try {
+            val jsonObject = JSONObject(jsonResponse)
+            val routeArray = jsonObject.getJSONObject("response").getJSONArray("route")
+
+            if (routeArray.length() > 0) {
+                val route = routeArray.getJSONObject(0)
+                val legArray = route.getJSONArray("leg")
+                val leg = legArray.getJSONObject(0)
+
+                if (leg.has("link")) {
+                    val linkArray = leg.getJSONArray("link")
+                    val link = linkArray.getJSONObject(0)
+                    if (link.has("attributes")) {
+                        val attributes = link.getJSONObject("attributes")
+                        if (attributes.has("SPEED_LIMITS_FCN")) {
+                            val speedLimits = attributes.getJSONArray("SPEED_LIMITS_FCN")
+                            for (i in 0 until speedLimits.length()) {
+                                val speedLimitObj = speedLimits.getJSONObject(i)
+                                val toSpeed = speedLimitObj.getString("TO_REF_SPEED_LIMIT")
+
+                                if (toSpeed != "0") {
+                                    currentMaxSpeed = toSpeed
+                                    return toSpeed
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                Log.e("MainActivity", "No se encontraron rutas en la respuesta.")
+            }
+            null
+        } catch (e: JSONException) {
+            Log.e("MainActivity", "Error al parsear la respuesta JSON: ${e.message}")
+            null
+        }
+    }
+
     override fun onStart() {
         super.onStart()
         startUpdatingMaxSpeed()
@@ -266,8 +313,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     private fun startUpdatingMaxSpeed() {
         runnable = object : Runnable {
             override fun run() {
-                obtenerMaxSpeed() // Llama a la función para obtener la velocidad máxima
-                handler.postDelayed(this, 3000) // Espera 3 segundos antes de volver a ejecutar
+                obtenerMaxSpeedFromHereMaps() // Llama a la función para obtener la velocidad máxima
+                handler.postDelayed(this, 5000) // Espera 5 segundos antes de volver a ejecutar
             }
         }
         handler.post(runnable) // Inicia el bucle
@@ -280,8 +327,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     private fun solicitarPermisos() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             permisoUbicacionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-        } else {
-            obtenerMaxSpeed()
         }
     }
 
@@ -324,8 +369,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                 intent.putExtra("agresiva", responseCountMap["agresiva"] ?: 0)
                 intent.putExtra("normal", responseCountMap["normal"] ?: 0)
                 intent.putExtra("fileNameJson", filePath)
-                Log.d("MainActivity", "Archivo JSON enviandose a PieChartActivity: $filePath")
-
 
                 startActivity(intent)
                 return true
@@ -346,9 +389,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                     runOnUiThread {
                         connection_status.text = getString(R.string.connecting, address)
                     }
-
                     Log.d("BluetoothConnection", "Attempting to connect to $address")
-
                     connected = bluetoothClient.connect()
 
                     if (connected) {
@@ -416,7 +457,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
             return currentGear
     }
 
-
     private suspend fun updateRPM() {
         currentRPM = RPM()
         withContext(Dispatchers.Main) { // Actualizar la UI en el hilo principal
@@ -474,7 +514,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
             // Guardar el JSON en un archivo
             filePath = saveJsonToFile(json, fileNameJson)
             Log.d("MainActivity", "Archivo JSON guardado en: $filePath")
-            Log.d("MainActivity", "Contenido del archivo JSON: $json")
             try {
                 val api = ApiDrivingStyle(
                     "8mxnjCT74badfewKW4JtGZbs39skW3BD",
@@ -496,8 +535,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         }
     }
 
-
-    // Función para contar las respuestas
     suspend fun countResponses(response: String, responseCountMap: MutableMap<String, Int>) {
         // Dividir el String de respuestas en una lista de palabras
         val responseList = response.split(",").map { it.trim().trim('"') }
@@ -525,15 +562,13 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         }
     }
 
-
-
     private fun launchMetricsUpdateJob(): Job {
         return lifecycleScope.launch {
             // Lanzar calculateGear en una corutina separada para que no bloquee el flujo
             launch {
                 while (read) {
-                    calculateGear(currentRPM, currentSpeed)  // Mantiene el cálculo del engranaje en segundo plano
-                    delay(100) // Controla la frecuencia del cálculo de engranaje (ajustable según necesidades)
+                    calculateGear(currentRPM, currentSpeed)  // Mantiene el cálculo de marcha en segundo plano
+                    delay(100) // Controla la frecuencia del cálculo de marcha (ajustable según necesidades)
                 }
             }
 
@@ -560,7 +595,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         return lifecycleScope.launch {
             while (read) {
                 if (log) {
-                    logMetricsToExcel(fileName) // Llamar a logMetricsToExcel o logMetricsToCSV de manera independiente
+                    logMetricsToExcel(fileName) // Llamar a logMetricsToExcel  manera independiente
                 }
                 delay(300) // Controla la frecuencia de registro
             }
@@ -580,12 +615,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         metricScopes.forEach { it.cancel() }
     }
 
-
     private fun logMetricsToExcel(fileName: String) {
         val gearAux = currentGear.toString()
         val column22 = "0"
         val dir = File(getExternalFilesDir(null), "MyAppData")
-        Log.d("Excel", "Directory: ${dir.absolutePath}")
         if (!dir.exists()) {
             Log.d("Excel", "Directory doesn't exist, creating directory")
             val dirCreated = dir.mkdirs()
@@ -593,7 +626,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         }
 
         val file = File(dir, fileName)
-        Log.d("Excel", "File: ${file.absolutePath}")
 
         try {
             val df = DecimalFormat("#.######", DecimalFormatSymbols(Locale.US)) // Limitar a 6 decimales
@@ -616,7 +648,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
 
             // Crear encabezados si no existen
             if (sheet.lastRowNum == 0 || sheet.getRow(0) == null) {
-                Log.d("Excel", "Creating headers")
                 val headerRow = sheet.createRow(0)
                 //headerRow.createCell(0).setCellValue("Current Time")
                 headerRow.createCell(0).setCellValue("Touch Count")
@@ -665,7 +696,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
             outputStream.close()
             workbook.close()
 
-            Log.d("Excel", "Data logged successfully")
 
         } catch (e: Exception) {
             Log.e("Excel", "Error writing to Excel: ${e.message}")
@@ -751,8 +781,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
             var jsonString = gson.toJson(jsonStructure)
 
             workbook.close()
-
-            Log.d("Convert", "Successfully converted Excel to JSON with headers and indices")
             return jsonString
         } catch (e: Exception) {
             Log.e("Convert", "Error converting Excel to JSON: ${e.message}")
@@ -773,14 +801,12 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
             writer.flush()
             writer.close()
 
-            Log.d("SaveJson", "JSON guardado exitosamente en ${jsonFile.absolutePath}")
             jsonFile.absolutePath // Retorna la ruta completa del archivo
         } catch (e: Exception) {
             Log.e("SaveJson", "Error al guardar JSON: ${e.message}")
             ""
         }
     }
-
 
     override fun onSensorChanged(event: SensorEvent?) {
         event?.let {
@@ -799,7 +825,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
             }
         }
     }
-
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 
@@ -879,7 +904,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         maxSpeed_display.text = getString(R.string.default_display)
         fuel_display.text = getString(R.string.default_display)
         engine_load_display.text = getString(R.string.default_display)
-        gear_display.text = "_._"
+        gear_display.text = getString(R.string.default_display)
     }
 
     override fun onResume() {

@@ -75,8 +75,8 @@ class PieChartActivity : AppCompatActivity() {
         // Cargar los datos del archivo JSON
         val vehicleData = readVehicleData(fileNameJson)
 
-        Log.d("PieChartActivity", "Archivo JSON: $fileNameJson")
-        Log.d("PieChartActivity", "Datos cargados: ${vehicleData.size} registros")
+       // Log.d("PieChartActivity", "Archivo JSON: $fileNameJson")
+        //Log.d("PieChartActivity", "Datos cargados: ${vehicleData.size} registros")
 
         // Configurar el gráfico circular
         val pieChart: PieChart = findViewById(R.id.pieChart)
