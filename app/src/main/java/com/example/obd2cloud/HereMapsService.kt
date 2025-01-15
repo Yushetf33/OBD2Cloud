@@ -17,6 +17,19 @@ class HereMapsService(
     private val client = OkHttpClient()
     private var ultimaVelocidadMaxima: String? = null // Variable para almacenar la última velocidad máxima válida
 
+    fun obtenerMaxSpeedSeguido(callback: (String?) -> Unit) {
+        val handler = android.os.Handler()
+        handler.post(object : Runnable {
+            override fun run() {
+                obtenerMaxSpeed { maxSpeed ->
+                    // Aquí se pasa el valor de maxSpeed a través del callback
+                    callback(maxSpeed)
+                }
+                handler.postDelayed(this, 5000) // Repite cada 5 segundos
+            }
+        })
+    }
+
     fun obtenerMaxSpeed(callback: (String?) -> Unit) {
         // Usa LocationService para obtener la ubicación
         locationService.obtenerUbicacionActual { location ->

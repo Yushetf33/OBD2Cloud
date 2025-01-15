@@ -234,23 +234,14 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         }
     }
 
-    private fun obtenerMaxSpeedFromHereMaps() {
-        handler.post(object : Runnable {
-            override fun run() {
-                hereMapsService.obtenerMaxSpeed { maxSpeed ->
-                    runOnUiThread {
-                        maxSpeed_display.text = maxSpeed ?: "Error o sin datos"
-                    }
-                }
-                handler.postDelayed(this, 5000) // Repite cada 5 segundos
-            }
-        })
-    }
-
-
     override fun onStart() {
         super.onStart()
-        obtenerMaxSpeedFromHereMaps()
+        hereMapsService.obtenerMaxSpeedSeguido() { maxSpeed ->
+            // Actualiza el TextView en el hilo principal
+            runOnUiThread {
+                maxSpeed_display.text = maxSpeed ?: "Error o sin datos"
+            }
+        }
     }
 
     override fun onStop() {
