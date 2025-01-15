@@ -41,7 +41,6 @@
 
         <activity android:name="com.example.obd2cloud.GraphActivity" />
 
-
         <activity
             android:name=".MainActivity"
             android:exported="true">

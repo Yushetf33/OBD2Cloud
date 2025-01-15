@@ -73,7 +73,7 @@ class BluetoothClient(private val device: BluetoothDevice) {
         return withContext(Dispatchers.IO) {
             try {
                 clearInputStream()
-                val aux: ObdResponse = obdConnection.run(RPMCommand(), delayTime = 10)
+                val aux: ObdResponse = obdConnection.run(RPMCommand(), delayTime = 300)
                 if (aux.rawResponse.value.contains("410C")) {
                     aux.value
                 } else {
@@ -91,7 +91,7 @@ class BluetoothClient(private val device: BluetoothDevice) {
         return withContext(Dispatchers.IO) {
             try {
                 clearInputStream()
-                val aux: ObdResponse = obdConnection.run(SpeedCommand(), delayTime = 10)
+                val aux: ObdResponse = obdConnection.run(SpeedCommand(), delayTime = 30)
                 if (aux.rawResponse.value.contains("410D")) {
                     aux.value
                 } else {
@@ -109,7 +109,7 @@ class BluetoothClient(private val device: BluetoothDevice) {
         return withContext(Dispatchers.IO) {
             try {
                 clearInputStream()
-                val aux: ObdResponse = obdConnection.run(ThrottlePositionCommand(), delayTime = 10)
+                val aux: ObdResponse = obdConnection.run(ThrottlePositionCommand(), delayTime = 30)
                 if (aux.rawResponse.value.contains("4111")) {
                     aux.value
                 } else {
@@ -127,7 +127,7 @@ class BluetoothClient(private val device: BluetoothDevice) {
         return withContext(Dispatchers.IO) {
             try {
                 clearInputStream()
-                val aux: ObdResponse = obdConnection.run(LoadCommand(), delayTime = 10)
+                val aux: ObdResponse = obdConnection.run(LoadCommand(), delayTime = 30)
                 if (aux.rawResponse.value.contains("4104")) {
                     aux.value
                 } else {
@@ -145,7 +145,7 @@ class BluetoothClient(private val device: BluetoothDevice) {
         return withContext(Dispatchers.IO) {
             try {
                 clearInputStream()
-                val aux: ObdResponse = obdConnection.run(FuelTrimCommand(FuelTrimCommand.FuelTrimBank.SHORT_TERM_BANK_1), delayTime = 10)
+                val aux: ObdResponse = obdConnection.run(FuelTrimCommand(FuelTrimCommand.FuelTrimBank.SHORT_TERM_BANK_1), delayTime = 30)
 
                 if (aux.rawResponse.value.contains("4106")) {
                     aux.value
