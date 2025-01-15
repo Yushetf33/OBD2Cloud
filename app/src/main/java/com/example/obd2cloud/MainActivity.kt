@@ -3,7 +3,6 @@
 package com.example.obd2cloud
 
 import android.bluetooth.BluetoothAdapter
-import java.text.DecimalFormat
 import android.bluetooth.BluetoothDevice
 import android.content.Context
 import android.content.Intent
@@ -13,6 +12,7 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.Manifest
+import android.annotation.SuppressLint
 import android.icu.text.SimpleDateFormat
 import android.os.Build
 import android.os.Bundle
@@ -31,7 +31,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import androidx.lifecycle.lifecycleScope
 import com.google.android.material.appbar.MaterialToolbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -39,17 +38,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.apache.poi.ss.usermodel.CellType
 import org.json.JSONObject
 import org.json.JSONException
-import java.io.File
 import java.util.Date
-import java.io.FileWriter
 import java.util.Locale
-import org.apache.poi.ss.usermodel.Workbook
-import org.apache.poi.xssf.usermodel.XSSFWorkbook
-import java.io.FileOutputStream
-import java.text.DecimalFormatSymbols
+
 
 class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListener {
     private var menu: Menu? = null
@@ -82,7 +75,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     private lateinit var permisoUbicacionLauncher: ActivityResultLauncher<String>
     private val handler = android.os.Handler(Looper.getMainLooper())
 
-    private var velocidadAnterior: String? = null // Variable para almacenar la velocidad anterior
+    private var velocidadAnterior: String? = null   // Variable para almacenar la velocidad anterior en velocidad maxima de openStreetMaps
 
     private val metricScopes = mutableListOf<Job>()
 
@@ -90,13 +83,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     private var gyroscope: Sensor? = null
     private var accelerometer: Sensor? = null
     private var touchCount: Int = 0
-    private var currentRPM: String = ""
-    private var currentFuelTrim: String = ""
-    private var currentSpeed: String = ""
-    private var currentThrottle: String = ""
-    private var currentEngineLoad: String = ""
     private var currentMaxSpeed: String = ""
-    private var currentGear: String = ""
     private var currentGyroX: String = ""
     private var currentGyroY: String = ""
     private var currentGyroZ: String = ""
@@ -193,7 +180,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         locationService.obtenerUbicacionActual { location ->
             if (location != null) {
 
-                val radioDinamico = calcularRadioPorVelocidad(currentSpeed)
+                val radioDinamico = calcularRadioPorVelocidad(speed_display.toString())
 
                 // Realiza la solicitud a OpenStreetMap con el radio ajustado
                 openStreetMapService.obtenerMaxSpeed(radioDinamico) { resultado ->
@@ -393,6 +380,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         }
     }
 
+    @SuppressLint("SuspiciousIndentation")
     @RequiresApi(Build.VERSION_CODES.Q)
     private suspend fun display() {
         if (connected) {
@@ -417,7 +405,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
             }
         }
     }
-
 
     suspend fun countResponses(response: String, responseCountMap: MutableMap<String, Int>) {
         // Dividir el String de respuestas en una lista de palabras
@@ -445,7 +432,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
             Toast.makeText(applicationContext, "Normal: $normalCount", Toast.LENGTH_SHORT).show()
         }
     }
-
 
     private fun stopUpdatingMetrics() {
         // Detener cada métrica y cancelar sus jobs
