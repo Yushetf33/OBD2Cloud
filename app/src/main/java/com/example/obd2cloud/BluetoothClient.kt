@@ -69,6 +69,28 @@ class BluetoothClient(private val device: BluetoothDevice) {
         }
     }
 
+    fun connectAndNotify(onStatusUpdate: (String) -> Unit) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                onStatusUpdate("Connecting to ${device.address}...")
+                val connected = connect() // Ya existente en BluetoothClient
+                withContext(Dispatchers.Main) {
+                    if (connected) {
+                        onStatusUpdate("Connected to ${device.address}")
+                    } else {
+                        onStatusUpdate("Error al conectar con ${device.address}")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("BluetoothClient", "Error durante la conexión", e)
+                withContext(Dispatchers.Main) {
+                    onStatusUpdate("Error durante la conexión: ${e.message}")
+                }
+            }
+        }
+    }
+
+
     suspend fun askRPM(): String {
         return withContext(Dispatchers.IO) {
             try {

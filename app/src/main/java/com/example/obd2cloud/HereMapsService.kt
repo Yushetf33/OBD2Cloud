@@ -25,7 +25,7 @@ class HereMapsService(
                     // Aquí se pasa el valor de maxSpeed a través del callback
                     callback(maxSpeed)
                 }
-                handler.postDelayed(this, 5000) // Repite cada 5 segundos
+                handler.postDelayed(this, 7000) // Repite cada 5 segundos
             }
         })
     }

@@ -15,6 +15,7 @@ class UpdateUI(
 ) {
 
     fun startMetricsUpdateJob(readFlag: () -> Boolean): Job {
+        Log.d("UpdateUI", "Iniciando actualización de métricas")
         return CoroutineScope(Dispatchers.IO).launch {
             while (readFlag()) {
                 // Consultar y actualizar las métricas secuencialmente

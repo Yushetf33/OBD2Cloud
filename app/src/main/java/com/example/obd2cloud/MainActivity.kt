@@ -56,7 +56,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     private lateinit var gear_display: TextView
 
     private var address: String = ""
-    private lateinit var mBluetoothAdapter: BluetoothAdapter
     private lateinit var updateUI: UpdateUI
     private lateinit var metricsManager: MetricsManager
     private lateinit var bluetoothClient: BluetoothClient
@@ -150,6 +149,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         hereMapsService = HereMapsService(locationService, "j0X98rWu-6X7IndOqpQl5b5pFuwuC8BxM4oQlEWAI_4")
     }
 
+    //Inicializa los permisos
     private fun initializePermissionLauncher() {
         permisoUbicacionLauncher =
             registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
@@ -249,7 +249,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         handler.removeCallbacksAndMessages(null)
     }
 
-
+    // Crea el menu
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.menu, menu)
         this.menu = menu
@@ -257,6 +257,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         return true
     }
 
+    //Gestiona las diferentes opciones del menu
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
@@ -320,7 +321,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                 }
             }
 
-
             R.id.show_statistics -> {
                 // Iniciar la actividad de gráficos
                 val intent = Intent(this, PieChartActivity::class.java)
@@ -336,41 +336,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         return false
     }
 
-    @RequiresApi(Build.VERSION_CODES.Q)
-    private fun connect() {
-        if (address.isNotEmpty()) {
-            CoroutineScope(Dispatchers.IO).launch {
-                try {
-                    mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
-                    val device: BluetoothDevice = mBluetoothAdapter.getRemoteDevice(address)
-                    bluetoothClient = BluetoothClient(device)
-
-                    runOnUiThread {
-                        connection_status.text = getString(R.string.connecting, address)
-                    }
-                    Log.d("BluetoothConnection", "Attempting to connect to $address")
-                    connected = bluetoothClient.connect()
-
-                    if (connected) {
-                        Log.d("BluetoothConnection", "Connected to $address")
-                        read = true
-                        display()
-                    } else {
-                        Log.d("BluetoothConnection", "Failed to connect to $address")
-                        runOnUiThread {
-                            connection_status.text = getString(R.string.connection_error)
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.e("BluetoothConnection", "Connection error: ${e.message}")
-                    runOnUiThread {
-                        connection_status.text = getString(R.string.connection_error)
-                    }
-                }
-            }
-        }
-    }
-
+    // Se encargsa de la interfaz de usuario
     @SuppressLint("SuspiciousIndentation")
     @RequiresApi(Build.VERSION_CODES.Q)
     private suspend fun display() {
@@ -392,7 +358,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                         gearDisplay = gear_display,
                         bluetoothClient = bluetoothClient
                     )
-                    updateUI.startMetricsUpdateJob { read }
+                updateUI.startMetricsUpdateJob { read }
             }
         }
     }
@@ -422,13 +388,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
             Toast.makeText(applicationContext, "Agresiva: $agresivaCount", Toast.LENGTH_SHORT).show()
             Toast.makeText(applicationContext, "Normal: $normalCount", Toast.LENGTH_SHORT).show()
         }
-    }
-
-    private fun stopUpdatingMetrics() {
-        // Detener cada métrica y cancelar sus jobs
-        metricScopes.forEach { it.cancel() }
-        metricScopes.clear() // Limpiar la lista de métricas activas
-        connected = false // Marca como desconectado
     }
 
     override fun onDestroy() {
@@ -467,15 +426,22 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     override fun onClick(v: View?) {
         when (v?.id) {
             R.id.stop -> {
-                read = false
-                resetDisplays()
+                // Detener la actualización de métricas y cancelar las coroutines
+                metricScopes.forEach { it.cancel() }
+                metricScopes.clear() // Limpiar las métricas activas
+
+                // Actualizar el estado de la conexión
                 connected = false
                 bluetoothClient.disconnect()
+
+                // Actualizar la UI
+                resetDisplays() // Restablece las vistas a su estado inicial
                 connection_status.text = getString(R.string.not_connected)
                 stop.isEnabled = false
                 bt?.isEnabled = true
                 bt?.icon?.alpha = 255
-                stopUpdatingMetrics()
+
+                // Restablecer variables relacionadas con el conteo
                 touchCount = 0
             }
         }
@@ -485,16 +451,29 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == 1) {
-            if (resultCode == RESULT_OK) {
-                val extras = data!!.extras
-                address = extras?.getString("device_address").toString()
-                Log.e("address", address)
-                connection_status.text = getString(R.string.connecting_address, address)
-                connect()
+        if (requestCode == 1 && resultCode == RESULT_OK) {
+            val extras = data?.extras
+            address = extras?.getString("device_address").orEmpty()
+            Log.e("address", address)
+            connection_status.text = getString(R.string.connecting_address, address)
+
+            val device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(address)
+
+            bluetoothClient = BluetoothClient(device)
+
+            bluetoothClient.connectAndNotify { status ->
+                connection_status.text = status
+                Log.d(status, status)
+                if (status.contains("Connected to")) {
+                    connected = true
+                    CoroutineScope(Dispatchers.Main).launch {
+                        display()
+                    }
+                }
             }
         }
     }
+
 
     private fun resetDisplays() {
         RPM_display.text = getString(R.string.default_display)
