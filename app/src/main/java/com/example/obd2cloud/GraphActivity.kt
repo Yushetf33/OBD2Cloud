@@ -37,7 +37,7 @@ class GraphActivity : AppCompatActivity() {
         fuelTrimChart = findViewById(R.id.fuelTrimChart)
 
         val isNightMode = AppCompatDelegate.getDefaultNightMode() == AppCompatDelegate.MODE_NIGHT_YES
-        var legendColor = if (!isNightMode) {
+        val legendColor = if (!isNightMode) {
             ContextCompat.getColor(this, R.color.white)
         } else {
             ContextCompat.getColor(this, R.color.black)
@@ -54,7 +54,7 @@ class GraphActivity : AppCompatActivity() {
     }
 
 
-    fun readVehicleData(fileName: String): List<VehicleData> {
+    private fun readVehicleData(fileName: String): List<VehicleData> {
         val file = File(fileName)
         if (!file.exists()) {
             Log.e("GraphActivity", "Archivo JSON no encontrado: $fileName")
@@ -71,7 +71,7 @@ class GraphActivity : AppCompatActivity() {
             val gson = Gson()
 
             // Parsear el JSON completo
-            val inputData = gson.fromJson(json, InputDataWrapper::class.java).input_data
+            val inputData = gson.fromJson(json, InputDataWrapper::class.java).inputData
 
             // Mapear los datos de cada fila a la clase VehicleData
             inputData.data.map { row ->
@@ -213,7 +213,7 @@ class GraphActivity : AppCompatActivity() {
     private fun setupRpmFuelTrimChart(vehicleData: List<VehicleData>, legendColor: Int) {
         val scatterEntries = ArrayList<Entry>()
 
-        vehicleData.forEachIndexed { index, data ->
+        vehicleData.forEachIndexed { _, data ->
             scatterEntries.add(Entry(data.rpm.toFloat(), data.fuelTrim))
         }
 

@@ -32,7 +32,6 @@ import androidx.core.content.ContextCompat
 
 class BluetoothActivity : AppCompatActivity(), View.OnClickListener {
 
-    private val TAG = "DeviceListActivity"
     var EXTRA_DEVICE_ADDRESS = "device_address"
 
     val REQUEST_ENABLE_BT = 1000

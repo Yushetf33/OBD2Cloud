@@ -40,14 +40,14 @@ import java.util.Locale
 
 class MainActivity : AppCompatActivity(), View.OnClickListener  {
     private var menu: Menu? = null
-    private lateinit var connection_status: TextView
-    private lateinit var speed_display: TextView
-    private lateinit var RPM_display: TextView
-    private lateinit var throttle_display: TextView
-    private lateinit var maxSpeed_display: TextView
-    private lateinit var engine_load_display: TextView
-    private lateinit var fuel_display: TextView
-    private lateinit var gear_display: TextView
+    private lateinit var connectionStatus: TextView
+    private lateinit var speedDisplay: TextView
+    private lateinit var rpmDisplay: TextView
+    private lateinit var throttleDisplay: TextView
+    private lateinit var maxspeedDisplay: TextView
+    private lateinit var engineLoadDisplay: TextView
+    private lateinit var fuelDisplay: TextView
+    private lateinit var gearDisplay: TextView
 
     private var address: String = ""
     private lateinit var updateUI: UpdateUI
@@ -103,19 +103,19 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
 
     // Inicializar los elementos de la interfaz de usuario
     private fun initializeUI() {
-        connection_status = findViewById(R.id.connection_indicator)
-        speed_display = findViewById(R.id.speed_display)
-        RPM_display = findViewById(R.id.RPM_display)
-        fuel_display = findViewById(R.id.fuel_display)
-        gear_display = findViewById(R.id.gear_display)
-        throttle_display = findViewById(R.id.throttle_display)
-        maxSpeed_display = findViewById(R.id.maxSpeed_display)
-        engine_load_display = findViewById(R.id.engine_load_display)
+        connectionStatus = findViewById(R.id.connection_indicator)
+        speedDisplay = findViewById(R.id.speed_display)
+        rpmDisplay = findViewById(R.id.RPM_display)
+        fuelDisplay = findViewById(R.id.fuel_display)
+        gearDisplay = findViewById(R.id.gear_display)
+        throttleDisplay = findViewById(R.id.throttle_display)
+        maxspeedDisplay = findViewById(R.id.maxSpeed_display)
+        engineLoadDisplay = findViewById(R.id.engine_load_display)
         stop = findViewById(R.id.stop)
 
         stop.setOnClickListener(this)
         stop.isEnabled = false
-        connection_status.text = getString(R.string.not_connected)
+        connectionStatus.text = getString(R.string.not_connected)
     }
 
     // Inicializar servicios de ubicación y mapas
@@ -156,7 +156,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
         locationService.obtenerUbicacionActual { location ->
             if (location != null) {
 
-                val radioDinamico = calcularRadioPorVelocidad(speed_display.toString())
+                val radioDinamico = calcularRadioPorVelocidad(speedDisplay.toString())
 
                 // Realiza la solicitud a OpenStreetMap con el radio ajustado
                 openStreetMapService.obtenerMaxSpeed(radioDinamico) { resultado ->
@@ -187,9 +187,9 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
                                 if (mostFrequentMaxSpeed != null) {
                                     velocidadAnterior = mostFrequentMaxSpeed // Actualiza la velocidad anterior
                                     currentMaxSpeed = velocidadAnterior.toString()
-                                    maxSpeed_display.text = mostFrequentMaxSpeed
+                                    maxspeedDisplay.text = mostFrequentMaxSpeed
                                 } else {
-                                    maxSpeed_display.text = velocidadAnterior ?: "N/A" // Muestra la velocidad anterior si no hay resultados
+                                    maxspeedDisplay.text = velocidadAnterior ?: "N/A" // Muestra la velocidad anterior si no hay resultados
                                 }
                             }
 
@@ -200,7 +200,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
                         Log.d("MainActivity", "La respuesta fue nula.")
                         // Muestra la velocidad anterior si la respuesta es nula
                         runOnUiThread {
-                            maxSpeed_display.text = velocidadAnterior ?: "N/A"
+                            maxspeedDisplay.text = velocidadAnterior ?: "N/A"
                         }
                     }
                 }
@@ -212,10 +212,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
 
     override fun onStart() {
         super.onStart()
-        hereMapsService.obtenerMaxSpeedSeguido() { maxSpeed ->
+        hereMapsService.obtenerMaxSpeedSeguido { maxSpeed ->
             // Actualiza el TextView en el hilo principal
             runOnUiThread {
-                maxSpeed_display.text = maxSpeed ?: "Error o sin datos"
+                maxspeedDisplay.text = maxSpeed ?: "Error o sin datos"
             }
         }
     }
@@ -258,13 +258,13 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
                             try {
                                 metricsManager.logMetricsToExcel(
                                     fileName = fileName,
-                                    currentRPM = RPM_display,
-                                    currentFuelTrim = fuel_display,
-                                    currentSpeed = speed_display,
-                                    currentThrottle = throttle_display,
-                                    currentEngineLoad = engine_load_display,
-                                    currentMaxSpeed = maxSpeed_display,
-                                    currentGear = gear_display,
+                                    currentRPM = rpmDisplay,
+                                    currentFuelTrim = fuelDisplay,
+                                    currentSpeed = speedDisplay,
+                                    currentThrottle = throttleDisplay,
+                                    currentEngineLoad = engineLoadDisplay,
+                                    currentMaxSpeed = maxspeedDisplay,
+                                    currentGear = gearDisplay,
                                     touchCount = touchCount
                                 )
                             } catch (e: Exception) {
@@ -312,7 +312,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
     private suspend fun display() {
         if (connected) {
             withContext(Dispatchers.Main) {
-                connection_status.text = getString(R.string.connected)
+                connectionStatus.text = getString(R.string.connected)
                 stop.isEnabled = true
                 bt?.isEnabled = false
                 bt?.icon?.alpha = 120
@@ -320,12 +320,12 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
             job = CoroutineScope(Dispatchers.IO).launch {
 
                 updateUI = UpdateUI(
-                        rpmDisplay = RPM_display,
-                        fuelDisplay = fuel_display,
-                        speedDisplay = speed_display,
-                        throttleDisplay = throttle_display,
-                        engineLoadDisplay = engine_load_display,
-                        gearDisplay = gear_display,
+                        rpmDisplay = rpmDisplay,
+                        fuelDisplay = fuelDisplay,
+                        speedDisplay = speedDisplay,
+                        throttleDisplay = throttleDisplay,
+                        engineLoadDisplay = engineLoadDisplay,
+                        gearDisplay = gearDisplay,
                         bluetoothClient = bluetoothClient
                     )
                 updateUI.startMetricsUpdateJob { read }
@@ -386,7 +386,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
 
                 // Actualizar la UI
                 resetDisplays() // Restablece las vistas a su estado inicial
-                connection_status.text = getString(R.string.not_connected)
+                connectionStatus.text = getString(R.string.not_connected)
                 stop.isEnabled = false
                 bt?.isEnabled = true
                 bt?.icon?.alpha = 255
@@ -405,14 +405,14 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
             val extras = data?.extras
             address = extras?.getString("device_address").orEmpty()
             Log.e("address", address)
-            connection_status.text = getString(R.string.connecting_address, address)
+            connectionStatus.text = getString(R.string.connecting_address, address)
 
             val device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(address)
 
             bluetoothClient = BluetoothClient(device)
 
             bluetoothClient.connectAndNotify { status ->
-                connection_status.text = status
+                connectionStatus.text = status
                 Log.d(status, status)
                 if (status.contains("Connected to")) {
                     connected = true
@@ -425,13 +425,13 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
     }
 
     private fun resetDisplays() {
-        RPM_display.text = getString(R.string.default_display)
-        speed_display.text = getString(R.string.default_display)
-        throttle_display.text = getString(R.string.default_display)
-        maxSpeed_display.text = getString(R.string.default_display)
-        fuel_display.text = getString(R.string.default_display)
-        engine_load_display.text = getString(R.string.default_display)
-        gear_display.text = getString(R.string.default_display)
+        rpmDisplay.text = getString(R.string.default_display)
+        speedDisplay.text = getString(R.string.default_display)
+        throttleDisplay.text = getString(R.string.default_display)
+        maxspeedDisplay.text = getString(R.string.default_display)
+        fuelDisplay.text = getString(R.string.default_display)
+        engineLoadDisplay.text = getString(R.string.default_display)
+        gearDisplay.text = getString(R.string.default_display)
     }
 
     override fun onResume() {
