@@ -37,7 +37,7 @@ class GraphActivity : AppCompatActivity() {
         fuelTrimChart = findViewById(R.id.fuelTrimChart)
 
         val isNightMode = AppCompatDelegate.getDefaultNightMode() == AppCompatDelegate.MODE_NIGHT_YES
-        var legendColor = if (!isNightMode) {
+        val legendColor = if (!isNightMode) {
             ContextCompat.getColor(this, R.color.white)
         } else {
             ContextCompat.getColor(this, R.color.black)
@@ -54,7 +54,7 @@ class GraphActivity : AppCompatActivity() {
     }
 
 
-    fun readVehicleData(fileName: String): List<VehicleData> {
+    private fun readVehicleData(fileName: String): List<VehicleData> {
         val file = File(fileName)
         if (!file.exists()) {
             Log.e("GraphActivity", "Archivo JSON no encontrado: $fileName")
@@ -71,7 +71,7 @@ class GraphActivity : AppCompatActivity() {
             val gson = Gson()
 
             // Parsear el JSON completo
-            val inputData = gson.fromJson(json, InputDataWrapper::class.java).input_data
+            val inputData = gson.fromJson(json, InputDataWrapper::class.java).inputData
 
             // Mapear los datos de cada fila a la clase VehicleData
             inputData.data.map { row ->
@@ -107,7 +107,7 @@ class GraphActivity : AppCompatActivity() {
         }
 
         val rpmDataSet = LineDataSet(rpmEntries, "RPM")
-        rpmDataSet.color = resources.getColor(android.R.color.holo_red_light)
+        rpmDataSet.color = ContextCompat.getColor(this, android.R.color.holo_red_light)
         rpmDataSet.setDrawCircles(false)
         rpmDataSet.setDrawValues(false) // Ocultar los valores en el gráfico
 
@@ -144,7 +144,7 @@ class GraphActivity : AppCompatActivity() {
         }
 
         val speedDataSet = LineDataSet(speedEntries, "Speed")
-        speedDataSet.color = resources.getColor(android.R.color.holo_blue_light)
+        speedDataSet.color = ContextCompat.getColor(this, android.R.color.holo_blue_light)
         speedDataSet.setDrawCircles(false)
         speedDataSet.setDrawValues(false)
 
@@ -182,7 +182,7 @@ class GraphActivity : AppCompatActivity() {
         }
 
         val engineLoadDataSet = BarDataSet(engineLoadEntries, "Engine Load")
-        engineLoadDataSet.color = resources.getColor(android.R.color.holo_green_light)
+        engineLoadDataSet.color = ContextCompat.getColor(this, android.R.color.holo_green_light)
         engineLoadDataSet.setDrawValues(false)
         val barData = BarData(engineLoadDataSet)
         engineLoadChart.data = barData
@@ -213,12 +213,12 @@ class GraphActivity : AppCompatActivity() {
     private fun setupRpmFuelTrimChart(vehicleData: List<VehicleData>, legendColor: Int) {
         val scatterEntries = ArrayList<Entry>()
 
-        vehicleData.forEachIndexed { index, data ->
+        vehicleData.forEachIndexed { _, data ->
             scatterEntries.add(Entry(data.rpm.toFloat(), data.fuelTrim))
         }
 
         val scatterDataSet = ScatterDataSet(scatterEntries, "RPM vs Fuel Trim")
-        scatterDataSet.color = resources.getColor(android.R.color.holo_purple)  // Color para el gráfico
+        scatterDataSet.color = ContextCompat.getColor(this, android.R.color.holo_purple)
         scatterDataSet.setDrawValues(false)  // Desactivar los valores sobre los puntos
 
         val scatterData = ScatterData(scatterDataSet)
@@ -255,7 +255,7 @@ class GraphActivity : AppCompatActivity() {
         }
 
         val fuelTrimDataSet = BarDataSet(fuelTrimEntries, "Fuel Trim")
-        fuelTrimDataSet.color = resources.getColor(android.R.color.holo_blue_light)
+        fuelTrimDataSet.color = ContextCompat.getColor(this, android.R.color.holo_blue_light)
         fuelTrimDataSet.setDrawValues(false)
 
         val barData = BarData(fuelTrimDataSet)

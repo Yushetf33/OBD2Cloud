@@ -19,7 +19,7 @@ class UpdateUI(
         return CoroutineScope(Dispatchers.IO).launch {
             while (readFlag()) {
                 // Consultar y actualizar las métricas secuencialmente
-                val rpm = RPM()
+                val rpm = rpm()
                 val speed = speed()
                 val gear = calculateGear(rpm, speed).toString()
                 val fuelTrim = fuelTrim()
@@ -34,7 +34,7 @@ class UpdateUI(
         }
     }
 
-    suspend fun updateMetrics(rpm: String, fuelTrim: String, speed: String, throttle: String, engineLoad: String, gear: String) {
+    private suspend fun updateMetrics(rpm: String, fuelTrim: String, speed: String, throttle: String, engineLoad: String, gear: String) {
         withContext(Dispatchers.Main) {
             Log.d("UpdateUI", "Updating UI: RPM=$rpm, FuelTrim=$fuelTrim, Speed=$speed, Throttle=$throttle, EngineLoad=$engineLoad, Gear=$gear")
 
@@ -47,7 +47,7 @@ class UpdateUI(
         }
     }
 
-    fun calculateGear(rpm: String, speed: String): Int {
+    private fun calculateGear(rpm: String, speed: String): Int {
         val rpmValue = rpm.toIntOrNull() ?: return 0
         val speedValue = speed.toFloatOrNull() ?: return 0
 
@@ -66,31 +66,31 @@ class UpdateUI(
         return speeds.indexOf(closestSpeed ?: 0) + 1
     }
 
-    suspend fun RPM(): String {
+    private suspend fun rpm(): String {
         return withContext(Dispatchers.IO) {
             bluetoothClient.askRPM()
         }
     }
 
-    suspend fun fuelTrim(): String {
+    private suspend fun fuelTrim(): String {
         return withContext(Dispatchers.IO) {
             bluetoothClient.askFuelTrimShort()
         }
     }
 
-    suspend fun speed(): String {
+    private suspend fun speed(): String {
         return withContext(Dispatchers.IO) {
             bluetoothClient.askSpeed()
         }
     }
 
-    suspend fun throttle(): String {
+    private suspend fun throttle(): String {
         return withContext(Dispatchers.IO) {
             bluetoothClient.askThrottlePosition()
         }
     }
 
-    suspend fun engineLoad(): String {
+    private suspend fun engineLoad(): String {
         return withContext(Dispatchers.IO) {
             bluetoothClient.askEngineLoad()
         }

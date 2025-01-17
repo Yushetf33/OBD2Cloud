@@ -27,7 +27,7 @@ class PieChartActivity : AppCompatActivity() {
         // Detectar el modo oscuro o claro
         val isNightMode = AppCompatDelegate.getDefaultNightMode() == AppCompatDelegate.MODE_NIGHT_YES
 
-        var textColor = if (!isNightMode) {
+        val textColor = if (!isNightMode) {
             ContextCompat.getColor(this, R.color.white)
         } else {
             ContextCompat.getColor(this, R.color.black)
@@ -128,7 +128,7 @@ class PieChartActivity : AppCompatActivity() {
         consejoTextView.text = advice
     }
 
-    fun generateCustomAdvice(vehicleData: List<VehicleData>, estiloPredominante: String): String {
+    private fun generateCustomAdvice(vehicleData: List<VehicleData>, estiloPredominante: String): String {
         val averageSpeed = vehicleData.map { it.speed }.average()
         val averageRpm = vehicleData.map { it.rpm }.average()
         val averageFuelTrim = vehicleData.map { it.fuelTrim }.average()
@@ -183,7 +183,7 @@ class PieChartActivity : AppCompatActivity() {
     }
 
 
-    fun readVehicleData(fileName: String): List<VehicleData> {
+    private fun readVehicleData(fileName: String): List<VehicleData> {
         val file = File(fileName)
         if (!file.exists()) {
             Log.e("PieChartActivity", "Archivo JSON no encontrado: $fileName")
@@ -200,7 +200,7 @@ class PieChartActivity : AppCompatActivity() {
             val gson = Gson()
 
             // Parsear el JSON completo
-            val inputData = gson.fromJson(json, InputDataWrapper::class.java).input_data
+            val inputData = gson.fromJson(json, InputDataWrapper::class.java).inputData
 
             // Mapear los datos de cada fila a la clase VehicleData
             inputData.data.map { row ->

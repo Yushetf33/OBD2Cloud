@@ -18,7 +18,7 @@ class HereMapsService(
     private var ultimaVelocidadMaxima: String? = null // Variable para almacenar la última velocidad máxima válida
 
     fun obtenerMaxSpeedSeguido(callback: (String?) -> Unit) {
-        val handler = android.os.Handler()
+        val handler = android.os.Handler(android.os.Looper.getMainLooper())
         handler.post(object : Runnable {
             override fun run() {
                 obtenerMaxSpeed { maxSpeed ->

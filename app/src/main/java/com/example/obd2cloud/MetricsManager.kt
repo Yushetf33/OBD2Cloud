@@ -103,7 +103,7 @@ class MetricsManager(private val context: Context, private val sensorHelper: Sen
                 val row = sheet.getRow(rowIndex)
                 val rowData = mutableListOf<Any>()
 
-                headers.forEachIndexed { colIndex, header ->
+                headers.forEachIndexed { colIndex, _ ->
                     val cell = row.getCell(colIndex)
                     val value = when (cell?.cellType) {
                         CellType.NUMERIC -> cell.numericCellValue
@@ -150,7 +150,7 @@ class MetricsManager(private val context: Context, private val sensorHelper: Sen
                 .serializeNulls()
                 .setPrettyPrinting()
                 .create()
-            var jsonString = gson.toJson(jsonStructure)
+            val jsonString = gson.toJson(jsonStructure)
 
             workbook.close()
             return jsonString

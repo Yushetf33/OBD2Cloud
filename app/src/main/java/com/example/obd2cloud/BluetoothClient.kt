@@ -4,6 +4,7 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import android.util.Log
+
 import com.github.eltonvs.obd.command.AdaptiveTimingMode
 import com.github.eltonvs.obd.command.ObdProtocols
 import com.github.eltonvs.obd.command.ObdResponse
@@ -46,7 +47,8 @@ class BluetoothClient(private val device: BluetoothDevice) {
         obdConnection.run(SelectProtocolCommand(ObdProtocols.AUTO), delayTime = 500) // ATSP0
     }
 
-    suspend fun connect(): Boolean = withContext(Dispatchers.IO) {
+    private suspend fun connect(): Boolean = withContext(Dispatchers.IO) {
+
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
 
         if (!bluetoothAdapter.isEnabled) {
