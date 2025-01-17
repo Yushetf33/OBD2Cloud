@@ -1,10 +1,9 @@
-/*package com.example.obd2cloud
+package com.example.obd2cloud
 
 import android.content.Context
 import android.util.Log
 import android.widget.TextView
 import org.apache.poi.ss.usermodel.CellType
-import org.apache.poi.ss.usermodel.Workbook
 import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import java.io.File
 import java.io.FileOutputStream
@@ -13,83 +12,44 @@ import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
 
-class MetricsManager(private val context: Context) {
+class MetricsManager(private val context: Context, private val sensorHelper: SensorManagerHelper) {
 
     fun logMetricsToExcel(
-    fileName: String,
-    currentRPM: TextView,
-    currentFuelTrim: TextView,
-    currentSpeed: TextView,
-    currentThrottle: TextView,
-    currentEngineLoad: TextView,
-    currentMaxSpeed: TextView,
-    currentGear: TextView,
-    currentGyroX: String?,
-    currentGyroY: String?,
-    currentGyroZ: String?,
-    currentAccelX: String?,
-    currentAccelY: String?,
-    currentAccelZ: String?,
-    touchCount: Int
+        fileName: String,
+        currentRPM: TextView,
+        currentFuelTrim: TextView,
+        currentSpeed: TextView,
+        currentThrottle: TextView,
+        currentEngineLoad: TextView,
+        currentMaxSpeed: TextView,
+        currentGear: TextView,
+        touchCount: Int
     ) {
         Log.d("MetricsManager", "logMetricsToExcel called with fileName: $fileName")
 
         val dir = File(context.getExternalFilesDir(null), "MyAppData")
-        if (!dir.exists()) {
-            Log.d("MetricsManager", "Directory doesn't exist, creating directory")
-            val dirCreated = dir.mkdirs()
-            Log.d("MetricsManager", "Directory created: $dirCreated")
-        }
-
+        if (!dir.exists()) dir.mkdirs()
         val file = File(dir, fileName)
-        Log.d("MetricsManager", "File path: ${file.absolutePath}")
 
         try {
             val df = DecimalFormat("#.######", DecimalFormatSymbols(Locale.US))
+            val (gyroX, gyroY, gyroZ) = sensorHelper.currentGyro
+            val (accelX, accelY, accelZ) = sensorHelper.currentAccel
 
-            val gyroX = currentGyroX?.replace(",", ".")?.toDoubleOrNull() ?: 0.0
-            val gyroY = currentGyroY?.replace(",", ".")?.toDoubleOrNull() ?: 0.0
-            val gyroZ = currentGyroZ?.replace(",", ".")?.toDoubleOrNull() ?: 0.0
-            val accelX = currentAccelX?.replace(",", ".")?.toDoubleOrNull() ?: 0.0
-            val accelY = currentAccelY?.replace(",", ".")?.toDoubleOrNull() ?: 0.0
-            val accelZ = currentAccelZ?.replace(",", ".")?.toDoubleOrNull() ?: 0.0
-
-            val workbook: Workbook = if (file.exists()) {
-                Log.d("MetricsManager", "File exists, loading workbook")
-                XSSFWorkbook(file.inputStream())
-            } else {
-                Log.d("MetricsManager", "File does not exist, creating new workbook")
-                XSSFWorkbook()
-            }
-
-            val sheet = workbook.getSheet("Metrics") ?: run {
-                Log.d("MetricsManager", "Sheet 'Metrics' not found, creating new sheet")
-                workbook.createSheet("Metrics")
-            }
+            val workbook = if (file.exists()) XSSFWorkbook(file.inputStream()) else XSSFWorkbook()
+            val sheet = workbook.getSheet("Metrics") ?: workbook.createSheet("Metrics")
 
             if (sheet.lastRowNum == 0 || sheet.getRow(0) == null) {
-                Log.d("MetricsManager", "Creating header row")
                 val headerRow = sheet.createRow(0)
-                headerRow.createCell(0).setCellValue("Touch Count")
-                headerRow.createCell(1).setCellValue("RPM")
-                headerRow.createCell(2).setCellValue("Fuel Trim")
-                headerRow.createCell(3).setCellValue("Speed")
-                headerRow.createCell(4).setCellValue("Throttle Position")
-                headerRow.createCell(5).setCellValue("Engine Load")
-                headerRow.createCell(6).setCellValue("Max Speed")
-                headerRow.createCell(7).setCellValue("Gear")
-                headerRow.createCell(8).setCellValue("Gyro X")
-                headerRow.createCell(9).setCellValue("Gyro Y")
-                headerRow.createCell(10).setCellValue("Gyro Z")
-                headerRow.createCell(11).setCellValue("Accel X")
-                headerRow.createCell(12).setCellValue("Accel Y")
-                headerRow.createCell(13).setCellValue("Accel Z")
-                headerRow.createCell(14).setCellValue("Column22")
+                listOf(
+                    "Touch Count", "RPM", "Fuel Trim", "Speed", "Throttle Position",
+                    "Engine Load", "Max Speed", "Gear",
+                    "Gyro X", "Gyro Y", "Gyro Z",
+                    "Accel X", "Accel Y", "Accel Z"
+                ).forEachIndexed { index, title -> headerRow.createCell(index).setCellValue(title) }
             }
 
             val currentRow = sheet.createRow(sheet.lastRowNum + 1)
-            Log.d("MetricsManager", "Creating new row at position: ${sheet.lastRowNum + 1}")
-
             currentRow.createCell(0).setCellValue(touchCount.toDouble())
             currentRow.createCell(1).setCellValue(currentRPM.text.toString())
             currentRow.createCell(2).setCellValue(currentFuelTrim.text.toString())
@@ -98,22 +58,19 @@ class MetricsManager(private val context: Context) {
             currentRow.createCell(5).setCellValue(currentEngineLoad.text.toString())
             currentRow.createCell(6).setCellValue(currentMaxSpeed.text.toString())
             currentRow.createCell(7).setCellValue(currentGear.text.toString())
-            currentRow.createCell(8).setCellValue(df.format(gyroX).toDouble())
-            currentRow.createCell(9).setCellValue(df.format(gyroY).toDouble())
-            currentRow.createCell(10).setCellValue(df.format(gyroZ).toDouble())
-            currentRow.createCell(11).setCellValue(df.format(accelX).toDouble())
-            currentRow.createCell(12).setCellValue(df.format(accelY).toDouble())
-            currentRow.createCell(13).setCellValue(df.format(accelZ).toDouble())
-            currentRow.createCell(14).setCellValue("0")
+            currentRow.createCell(8).setCellValue(df.format(gyroX))
+            currentRow.createCell(9).setCellValue(df.format(gyroY))
+            currentRow.createCell(10).setCellValue(df.format(gyroZ))
+            currentRow.createCell(11).setCellValue(df.format(accelX))
+            currentRow.createCell(12).setCellValue(df.format(accelY))
+            currentRow.createCell(13).setCellValue(df.format(accelZ))
 
             val outputStream = FileOutputStream(file)
             workbook.write(outputStream)
             outputStream.close()
             workbook.close()
-
-            Log.d("MetricsManager", "Excel file written successfully")
         } catch (e: Exception) {
-            Log.e("MetricsManager", "Error writing to Excel: ${e.message}")
+            e.printStackTrace()
         }
     }
 
@@ -217,85 +174,6 @@ class MetricsManager(private val context: Context) {
         } catch (e: Exception) {
             Log.e("MetricsManager", "Error saving JSON: ${e.message}")
             ""
-        }
-    }
-}
-
-
- */
-
-package com.example.obd2cloud
-
-import android.content.Context
-import android.util.Log
-import android.widget.TextView
-import com.example.obd2cloud.SensorManagerHelper
-import org.apache.poi.xssf.usermodel.XSSFWorkbook
-import java.io.File
-import java.io.FileOutputStream
-import java.text.DecimalFormat
-import java.text.DecimalFormatSymbols
-import java.util.Locale
-
-class MetricsManager(private val context: Context, private val sensorHelper: SensorManagerHelper) {
-
-    fun logMetricsToExcel(
-        fileName: String,
-        currentRPM: TextView,
-        currentFuelTrim: TextView,
-        currentSpeed: TextView,
-        currentThrottle: TextView,
-        currentEngineLoad: TextView,
-        currentMaxSpeed: TextView,
-        currentGear: TextView,
-        touchCount: Int
-    ) {
-        Log.d("MetricsManager", "logMetricsToExcel called with fileName: $fileName")
-
-        val dir = File(context.getExternalFilesDir(null), "MyAppData")
-        if (!dir.exists()) dir.mkdirs()
-        val file = File(dir, fileName)
-
-        try {
-            val df = DecimalFormat("#.######", DecimalFormatSymbols(Locale.US))
-            val (gyroX, gyroY, gyroZ) = sensorHelper.currentGyro
-            val (accelX, accelY, accelZ) = sensorHelper.currentAccel
-
-            val workbook = if (file.exists()) XSSFWorkbook(file.inputStream()) else XSSFWorkbook()
-            val sheet = workbook.getSheet("Metrics") ?: workbook.createSheet("Metrics")
-
-            if (sheet.lastRowNum == 0 || sheet.getRow(0) == null) {
-                val headerRow = sheet.createRow(0)
-                listOf(
-                    "Touch Count", "RPM", "Fuel Trim", "Speed", "Throttle Position",
-                    "Engine Load", "Max Speed", "Gear",
-                    "Gyro X", "Gyro Y", "Gyro Z",
-                    "Accel X", "Accel Y", "Accel Z"
-                ).forEachIndexed { index, title -> headerRow.createCell(index).setCellValue(title) }
-            }
-
-            val currentRow = sheet.createRow(sheet.lastRowNum + 1)
-            currentRow.createCell(0).setCellValue(touchCount.toDouble())
-            currentRow.createCell(1).setCellValue(currentRPM.text.toString())
-            currentRow.createCell(2).setCellValue(currentFuelTrim.text.toString())
-            currentRow.createCell(3).setCellValue(currentSpeed.text.toString())
-            currentRow.createCell(4).setCellValue(currentThrottle.text.toString())
-            currentRow.createCell(5).setCellValue(currentEngineLoad.text.toString())
-            currentRow.createCell(6).setCellValue(currentMaxSpeed.text.toString())
-            currentRow.createCell(7).setCellValue(currentGear.text.toString())
-            currentRow.createCell(8).setCellValue(df.format(gyroX))
-            currentRow.createCell(9).setCellValue(df.format(gyroY))
-            currentRow.createCell(10).setCellValue(df.format(gyroZ))
-            currentRow.createCell(11).setCellValue(df.format(accelX))
-            currentRow.createCell(12).setCellValue(df.format(accelY))
-            currentRow.createCell(13).setCellValue(df.format(accelZ))
-
-            val outputStream = FileOutputStream(file)
-            workbook.write(outputStream)
-            outputStream.close()
-            workbook.close()
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
     }
 }
