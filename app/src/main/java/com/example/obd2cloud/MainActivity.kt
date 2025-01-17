@@ -1,3 +1,4 @@
+
 @file:Suppress("DEPRECATION")
 
 package com.example.obd2cloud
@@ -70,8 +71,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
     private val handler = android.os.Handler(Looper.getMainLooper())
 
     private var velocidadAnterior: String? = null   // Variable para almacenar la velocidad anterior en velocidad maxima de openStreetMaps
-
-    private val metricScopes = mutableListOf<Job>()
 
     private var touchCount: Int = 0
     private var currentMaxSpeed: String = ""
@@ -320,14 +319,14 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
             job = CoroutineScope(Dispatchers.IO).launch {
 
                 updateUI = UpdateUI(
-                        rpmDisplay = rpmDisplay,
-                        fuelDisplay = fuelDisplay,
-                        speedDisplay = speedDisplay,
-                        throttleDisplay = throttleDisplay,
-                        engineLoadDisplay = engineLoadDisplay,
-                        gearDisplay = gearDisplay,
-                        bluetoothClient = bluetoothClient
-                    )
+                    rpmDisplay = rpmDisplay,
+                    fuelDisplay = fuelDisplay,
+                    speedDisplay = speedDisplay,
+                    throttleDisplay = throttleDisplay,
+                    engineLoadDisplay = engineLoadDisplay,
+                    gearDisplay = gearDisplay,
+                    bluetoothClient = bluetoothClient
+                )
                 updateUI.startMetricsUpdateJob { read }
             }
         }
@@ -362,8 +361,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
 
     override fun onDestroy() {
         super.onDestroy()
-        // Cancelar todas las coroutines cuando la actividad se destruya
-        metricScopes.forEach { it.cancel() }
     }
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
@@ -376,16 +373,14 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
     override fun onClick(v: View?) {
         when (v?.id) {
             R.id.stop -> {
-                // Detener la actualización de métricas y cancelar las coroutines
-                metricScopes.forEach { it.cancel() }
-                metricScopes.clear() // Limpiar las métricas activas
+                resetDisplays()
+                updateUI.cancelMetricsUpdateJob()
 
                 // Actualizar el estado de la conexión
                 connected = false
                 bluetoothClient.disconnect()
 
                 // Actualizar la UI
-                resetDisplays() // Restablece las vistas a su estado inicial
                 connectionStatus.text = getString(R.string.not_connected)
                 stop.isEnabled = false
                 bt?.isEnabled = true
@@ -444,4 +439,3 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
         sensorManagerHelper.unregisterListeners()
     }
 }
-

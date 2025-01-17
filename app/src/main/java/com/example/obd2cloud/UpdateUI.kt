@@ -14,9 +14,11 @@ class UpdateUI(
     private val bluetoothClient: BluetoothClient,
 ) {
 
-    fun startMetricsUpdateJob(readFlag: () -> Boolean): Job {
+    private var metricsUpdateJob: Job? = null // Referencia al Job
+
+    fun startMetricsUpdateJob(readFlag: () -> Boolean) {
         Log.d("UpdateUI", "Iniciando actualización de métricas")
-        return CoroutineScope(Dispatchers.IO).launch {
+        metricsUpdateJob = CoroutineScope(Dispatchers.IO).launch {
             while (readFlag()) {
                 // Consultar y actualizar las métricas secuencialmente
                 val rpm = rpm()
@@ -31,6 +33,16 @@ class UpdateUI(
                     updateMetrics(rpm, fuelTrim, speed, throttle, engineLoad, gear)
                 }
             }
+        }
+    }
+
+
+    fun cancelMetricsUpdateJob() {
+        if (metricsUpdateJob?.isActive == true) {
+            Log.d("UpdateUI", "Cancelando la actualización de métricas.")
+            metricsUpdateJob?.cancel()
+        } else {
+            Log.d("UpdateUI", "No hay ningún trabajo de actualización activo para cancelar.")
         }
     }
 
