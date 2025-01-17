@@ -359,10 +359,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-    }
-
     override fun onTouchEvent(event: MotionEvent?): Boolean {
         if (save && event?.action == MotionEvent.ACTION_DOWN) {
             touchCount++ // Incrementar contador de toques si está guardando en excel
