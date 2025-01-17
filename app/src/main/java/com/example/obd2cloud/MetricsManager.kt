@@ -1,4 +1,4 @@
-package com.example.obd2cloud
+/*package com.example.obd2cloud
 
 import android.content.Context
 import android.util.Log
@@ -217,6 +217,85 @@ class MetricsManager(private val context: Context) {
         } catch (e: Exception) {
             Log.e("MetricsManager", "Error saving JSON: ${e.message}")
             ""
+        }
+    }
+}
+
+
+ */
+
+package com.example.obd2cloud
+
+import android.content.Context
+import android.util.Log
+import android.widget.TextView
+import com.example.obd2cloud.SensorManagerHelper
+import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import java.io.File
+import java.io.FileOutputStream
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
+import java.util.Locale
+
+class MetricsManager(private val context: Context, private val sensorHelper: SensorManagerHelper) {
+
+    fun logMetricsToExcel(
+        fileName: String,
+        currentRPM: TextView,
+        currentFuelTrim: TextView,
+        currentSpeed: TextView,
+        currentThrottle: TextView,
+        currentEngineLoad: TextView,
+        currentMaxSpeed: TextView,
+        currentGear: TextView,
+        touchCount: Int
+    ) {
+        Log.d("MetricsManager", "logMetricsToExcel called with fileName: $fileName")
+
+        val dir = File(context.getExternalFilesDir(null), "MyAppData")
+        if (!dir.exists()) dir.mkdirs()
+        val file = File(dir, fileName)
+
+        try {
+            val df = DecimalFormat("#.######", DecimalFormatSymbols(Locale.US))
+            val (gyroX, gyroY, gyroZ) = sensorHelper.currentGyro
+            val (accelX, accelY, accelZ) = sensorHelper.currentAccel
+
+            val workbook = if (file.exists()) XSSFWorkbook(file.inputStream()) else XSSFWorkbook()
+            val sheet = workbook.getSheet("Metrics") ?: workbook.createSheet("Metrics")
+
+            if (sheet.lastRowNum == 0 || sheet.getRow(0) == null) {
+                val headerRow = sheet.createRow(0)
+                listOf(
+                    "Touch Count", "RPM", "Fuel Trim", "Speed", "Throttle Position",
+                    "Engine Load", "Max Speed", "Gear",
+                    "Gyro X", "Gyro Y", "Gyro Z",
+                    "Accel X", "Accel Y", "Accel Z"
+                ).forEachIndexed { index, title -> headerRow.createCell(index).setCellValue(title) }
+            }
+
+            val currentRow = sheet.createRow(sheet.lastRowNum + 1)
+            currentRow.createCell(0).setCellValue(touchCount.toDouble())
+            currentRow.createCell(1).setCellValue(currentRPM.text.toString())
+            currentRow.createCell(2).setCellValue(currentFuelTrim.text.toString())
+            currentRow.createCell(3).setCellValue(currentSpeed.text.toString())
+            currentRow.createCell(4).setCellValue(currentThrottle.text.toString())
+            currentRow.createCell(5).setCellValue(currentEngineLoad.text.toString())
+            currentRow.createCell(6).setCellValue(currentMaxSpeed.text.toString())
+            currentRow.createCell(7).setCellValue(currentGear.text.toString())
+            currentRow.createCell(8).setCellValue(df.format(gyroX))
+            currentRow.createCell(9).setCellValue(df.format(gyroY))
+            currentRow.createCell(10).setCellValue(df.format(gyroZ))
+            currentRow.createCell(11).setCellValue(df.format(accelX))
+            currentRow.createCell(12).setCellValue(df.format(accelY))
+            currentRow.createCell(13).setCellValue(df.format(accelZ))
+
+            val outputStream = FileOutputStream(file)
+            workbook.write(outputStream)
+            outputStream.close()
+            workbook.close()
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 }

@@ -3,14 +3,8 @@
 package com.example.obd2cloud
 
 import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothDevice
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.hardware.Sensor
-import android.hardware.SensorEvent
-import android.hardware.SensorEventListener
-import android.hardware.SensorManager
 import android.Manifest
 import android.annotation.SuppressLint
 import android.icu.text.SimpleDateFormat
@@ -44,7 +38,7 @@ import java.util.Date
 import java.util.Locale
 
 
-class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListener {
+class MainActivity : AppCompatActivity(), View.OnClickListener/*, SensorEventListener */{
     private var menu: Menu? = null
     private lateinit var connection_status: TextView
     private lateinit var speed_display: TextView
@@ -58,6 +52,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
     private var address: String = ""
     private lateinit var updateUI: UpdateUI
     private lateinit var metricsManager: MetricsManager
+    private lateinit var sensorManagerHelper: SensorManagerHelper
     private lateinit var bluetoothClient: BluetoothClient
     private var connected: Boolean = false
     private var read: Boolean = true
@@ -78,17 +73,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
 
     private val metricScopes = mutableListOf<Job>()
 
-    private lateinit var sensorManager: SensorManager
-    private var gyroscope: Sensor? = null
-    private var accelerometer: Sensor? = null
     private var touchCount: Int = 0
     private var currentMaxSpeed: String = ""
-    private var currentGyroX: String = ""
-    private var currentGyroY: String = ""
-    private var currentGyroZ: String = ""
-    private var currentAccelX: String = ""
-    private var currentAccelY: String = ""
-    private var currentAccelZ: String = ""
     private var responseCountMap = mutableMapOf("tranquilo" to 0, "agresiva" to 0, "normal" to 0)
 
 
@@ -103,10 +89,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
 
         setupToolbar()
         initializeUI()
-        initializeSensors()
         initializeServices()
         initializePermissionLauncher()
-        metricsManager = MetricsManager(this)
+        sensorManagerHelper = SensorManagerHelper(this)
+        metricsManager = MetricsManager(this, sensorManagerHelper)
     }
 
     // Configurar la barra de herramientas
@@ -132,20 +118,10 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         connection_status.text = getString(R.string.not_connected)
     }
 
-    // Inicializar y registrar sensores
-    private fun initializeSensors() {
-        sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
-        gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
-        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-
-        sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_NORMAL)
-        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL)
-    }
-
     // Inicializar servicios de ubicación y mapas
     private fun initializeServices() {
         locationService = LocationService(this)
-        openStreetMapService = OpenStreetMapService(locationService)
+        //openStreetMapService = OpenStreetMapService(locationService)
         hereMapsService = HereMapsService(locationService, "j0X98rWu-6X7IndOqpQl5b5pFuwuC8BxM4oQlEWAI_4")
     }
 
@@ -289,12 +265,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
                                     currentEngineLoad = engine_load_display,
                                     currentMaxSpeed = maxSpeed_display,
                                     currentGear = gear_display,
-                                    currentGyroX = currentGyroX,
-                                    currentGyroY = currentGyroY,
-                                    currentGyroZ = currentGyroZ,
-                                    currentAccelX = currentAccelX,
-                                    currentAccelY = currentAccelY,
-                                    currentAccelZ = currentAccelZ,
                                     touchCount = touchCount
                                 )
                             } catch (e: Exception) {
@@ -396,26 +366,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         metricScopes.forEach { it.cancel() }
     }
 
-    override fun onSensorChanged(event: SensorEvent?) {
-        event?.let {
-            when (event.sensor.type) {
-                Sensor.TYPE_GYROSCOPE -> {
-                    currentGyroX = event.values[0].toString()
-                    currentGyroY = event.values[1].toString()
-                    currentGyroZ = event.values[2].toString()
-                }
-
-                Sensor.TYPE_ACCELEROMETER -> {
-                    currentAccelX = event.values[0].toString()
-                    currentAccelY = event.values[1].toString()
-                    currentAccelZ = event.values[2].toString()
-                }
-            }
-        }
-    }
-
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
-
     override fun onTouchEvent(event: MotionEvent?): Boolean {
         if (save && event?.action == MotionEvent.ACTION_DOWN) {
             touchCount++ // Incrementar contador de toques si está guardando en excel
@@ -474,7 +424,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
         }
     }
 
-
     private fun resetDisplays() {
         RPM_display.text = getString(R.string.default_display)
         speed_display.text = getString(R.string.default_display)
@@ -487,17 +436,12 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SensorEventListe
 
     override fun onResume() {
         super.onResume()
-        sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_NORMAL)
-        sensorManager.registerListener(
-            this,
-            accelerometer,
-            SensorManager.SENSOR_DELAY_NORMAL
-        )
+        sensorManagerHelper.registerListeners()
     }
 
     override fun onPause() {
         super.onPause()
-        sensorManager.unregisterListener(this)
+        sensorManagerHelper.unregisterListeners()
     }
 }
 
