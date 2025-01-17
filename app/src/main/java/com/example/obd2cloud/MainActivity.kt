@@ -38,7 +38,7 @@ import java.util.Date
 import java.util.Locale
 
 
-class MainActivity : AppCompatActivity(), View.OnClickListener/*, SensorEventListener */{
+class MainActivity : AppCompatActivity(), View.OnClickListener  {
     private var menu: Menu? = null
     private lateinit var connection_status: TextView
     private lateinit var speed_display: TextView
