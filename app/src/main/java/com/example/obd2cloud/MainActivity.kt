@@ -29,14 +29,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
-import org.json.JSONException
 import java.util.Date
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
     private var menu: Menu? = null
-    private lateinit var speedDisplay: TextView
     private lateinit var maxSpeedDisplay: TextView
 
     private var address: String = ""
@@ -154,10 +151,22 @@ class MainActivity : AppCompatActivity() {
                                 Log.e("LoggingJob", "Error in logMetricsToExcel: ${e.message}")
                             }
                             delay(400)
-                            // Si deseas convertir a JSON después
-                            //val json = metricsManager.convertExcelToStructuredJson(fileName)
-                            //filePath = metricsManager.saveJsonToFile(json, fileNameJson)
-                            //Log.d("MetricsManager", "JSON saved at: ${filePath}")
+                        }
+                        // Si deseas convertir a JSON después
+                        val jsonString = metricsManager.convertExcelToStructuredJson(fileName)
+                        filePath = metricsManager.saveJsonToFile(jsonString, fileNameJson)
+                        val apiDrivingStyle = ApiDrivingStyle(token = "tu_token", apiUrl = "tu_api_url")
+                        val response = apiDrivingStyle.sendPostRequest(filePath)
+                        countResponses(response, responseCountMap)
+                        // Pasar datos a PieChartActivity
+                        withContext(Dispatchers.Main) {
+                            val intent = Intent(this@MainActivity, PieChartActivity::class.java).apply {
+                                putExtra("tranquilo", responseCountMap["tranquilo"] ?: 0)
+                                putExtra("agresiva", responseCountMap["agresiva"] ?: 0)
+                                putExtra("normal", responseCountMap["normal"] ?: 0)
+                                putExtra("fileNameJson", filePath)
+                            }
+                            startActivity(intent)
                         }
                     }
 
@@ -194,7 +203,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    suspend fun countResponses(response: String, responseCountMap: MutableMap<String, Int>) {
+    private suspend fun countResponses(response: String, responseCountMap: MutableMap<String, Int>) {
         // Dividir el String de respuestas en una lista de palabras
         val responseList = response.split(",").map { it.trim().trim('"') }
 
