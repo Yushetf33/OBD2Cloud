@@ -84,7 +84,7 @@ class UpdateUI(
         }
     }
 
-    fun stopMetricsUpdate() {
+    private fun stopMetricsUpdate() {
         metricsUpdateJob?.cancel()
         metricsUpdateJob = null
     }
@@ -92,12 +92,11 @@ class UpdateUI(
     fun handleConnectionStart() {
         updateConnectionStatus("Connected")
         stopButton.isEnabled = true
-
         // Iniciar actualización de métricas
         startMetricsUpdateJob { true } // O usa un flag para el estado real
     }
 
-    fun resetDisplays() {
+    private fun resetDisplays() {
         rpmDisplay.text = "_._"
         speedDisplay.text = "_._"
         throttleDisplay.text = "_._"

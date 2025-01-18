@@ -2,6 +2,7 @@ package com.example.obd2cloud
 
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.io.IOException
 
@@ -15,7 +16,7 @@ class ApiDrivingStyle(private val token: String, private val apiUrl: String) {
         val inputJson = File(jsonFilePath).readText()
 
         // Crear el cuerpo de la solicitud con el JSON
-        val body = RequestBody.create("application/json".toMediaTypeOrNull(), inputJson)
+        val body = inputJson.toRequestBody("application/json".toMediaTypeOrNull())
 
         // Crear la solicitud POST
         val request = Request.Builder()

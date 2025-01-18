@@ -1,7 +1,6 @@
 package com.example.obd2cloud
 
 import com.github.eltonvs.obd.command.ATCommand
-import com.github.eltonvs.obd.command.Switcher
 
 /**
  * Declaration of other OBD command.
@@ -9,14 +8,14 @@ import com.github.eltonvs.obd.command.Switcher
  */
 
 
-class HeadersCommand(header: Switcher) : ATCommand() {
+class HeadersCommand : ATCommand() {
     override val tag = "HEADER"
     override val name = "Set at header"
     override val mode = "AT"
     override val pid = "H0"
 }
 
-class SetMemoryCommand(value: Switcher) : ATCommand() {
+class SetMemoryCommand : ATCommand() {
     override val tag = "MEMORY"
     override val name = "Memory on/off"
     override val mode = "AT"

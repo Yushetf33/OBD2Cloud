@@ -32,11 +32,11 @@ import androidx.core.content.ContextCompat
 
 class BluetoothActivity : AppCompatActivity(), View.OnClickListener {
 
-    var EXTRA_DEVICE_ADDRESS = "device_address"
+    private var extraDeviceAddress = "device_address"
 
-    val REQUEST_ENABLE_BT = 1000
-    val BLUETOOTH_CODE = 1003
-    val LOCATION_REQUEST_CODE = 1005
+    private val requestEnableBT = 1000
+    private val bluetoothCode = 1003
+    private val locationRequestCode = 1005
 
     private var bluetoothEnabled = false
     private var locationEnabled = false
@@ -47,8 +47,8 @@ class BluetoothActivity : AppCompatActivity(), View.OnClickListener {
 
     private lateinit var progress: ProgressBar
 
-    private lateinit var start_bt: Button
-    private lateinit var stop_bt: Button
+    private lateinit var startBt: Button
+    private lateinit var stopBt: Button
 
     @RequiresApi(Build.VERSION_CODES.S)
     private fun checkBtPermissions() {
@@ -69,7 +69,7 @@ class BluetoothActivity : AppCompatActivity(), View.OnClickListener {
             ActivityCompat.requestPermissions(
                 this,
                 permissionsToRequest.toTypedArray(),
-                BLUETOOTH_CODE
+                bluetoothCode
             )
         } else {
             initBluetooth()
@@ -98,7 +98,7 @@ class BluetoothActivity : AppCompatActivity(), View.OnClickListener {
             setMessage("Please turn on geolocation to use this app.")
             setPositiveButton("Settings") { _, _ ->
                 val settingsIntent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
-                startActivityForResult(settingsIntent, LOCATION_REQUEST_CODE)
+                startActivityForResult(settingsIntent, locationRequestCode)
             }
             setNegativeButton("Cancel") { dialog, _ ->
                 dialog.dismiss()
@@ -116,7 +116,7 @@ class BluetoothActivity : AppCompatActivity(), View.OnClickListener {
             setMessage("Please turn on Bluetooth to use this app.")
             setPositiveButton("Turn On") { _, _ ->
                 val bluetoothIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-                startActivityForResult(bluetoothIntent, REQUEST_ENABLE_BT)
+                startActivityForResult(bluetoothIntent, requestEnableBT)
             }
             setNegativeButton("Cancel") { dialog, _ ->
                 dialog.dismiss()
@@ -130,7 +130,7 @@ class BluetoothActivity : AppCompatActivity(), View.OnClickListener {
     private fun initBluetooth() {
         // Set result CANCELED in case the user backs out
         setResult(RESULT_CANCELED)
-        start_bt.isEnabled = false
+        startBt.isEnabled = false
         val pairedDevicesArrayAdapter = ArrayAdapter<String>(this, android.R.layout.simple_list_item_1)
         mNewDevicesArrayAdapter = ArrayAdapter<String>(this, android.R.layout.simple_list_item_1)
 
@@ -182,7 +182,7 @@ class BluetoothActivity : AppCompatActivity(), View.OnClickListener {
 
         // Request discover from BluetoothAdapter
         mBtAdapter.startDiscovery()
-        start_bt.isEnabled = false
+        startBt.isEnabled = false
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
@@ -207,11 +207,11 @@ class BluetoothActivity : AppCompatActivity(), View.OnClickListener {
 
         // Set the layout
         setContentView(R.layout.activity_bluetooth)
-        progress = findViewById<ProgressBar>(R.id.spinner)
-        start_bt = findViewById<Button>(R.id.bt_start)
-        stop_bt = findViewById<Button>(R.id.bt_stop)
-        start_bt.setOnClickListener(this)
-        stop_bt.setOnClickListener(this)
+        progress = findViewById(R.id.spinner)
+        startBt = findViewById(R.id.bt_start)
+        stopBt = findViewById(R.id.bt_stop)
+        startBt.setOnClickListener(this)
+        stopBt.setOnClickListener(this)
 
         // Check Bluetooth permissions
         checkBtPermissions()
@@ -239,11 +239,11 @@ class BluetoothActivity : AppCompatActivity(), View.OnClickListener {
 
             // Create the result Intent and include the MAC address
             val intent = Intent()
-            intent.putExtra(EXTRA_DEVICE_ADDRESS, address)
+            intent.putExtra(extraDeviceAddress, address)
 
             // Set result and finish this Activity
             setResult(RESULT_OK, intent)
-            start_bt.isEnabled = true
+            startBt.isEnabled = true
             finish()
         }
 
@@ -279,7 +279,7 @@ class BluetoothActivity : AppCompatActivity(), View.OnClickListener {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == BLUETOOTH_CODE) {
+        if (requestCode == bluetoothCode) {
             if (grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
                 initBluetooth() // Initialize Bluetooth if permissions are granted
             } else {

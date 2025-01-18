@@ -135,8 +135,6 @@ class PieChartActivity : AppCompatActivity() {
         val averageThrottlePosition = vehicleData.map { it.throttlePosition }.average()
         val averageEngineLoad = vehicleData.map { it.engineLoad }.average()
 
-
-
         // Consejos básicos basados en el estilo de conducción
         var advice = ""
 

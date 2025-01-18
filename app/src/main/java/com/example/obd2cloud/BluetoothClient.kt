@@ -36,12 +36,12 @@ class BluetoothClient(private val device: BluetoothDevice) {
     private suspend fun torqueATInit() {
         obdConnection.run(ResetAdapterCommand(), delayTime = 1000)          // ATZ
         obdConnection.run(SetEchoCommand(Switcher.OFF), delayTime = 500)    // ATE0
-        obdConnection.run(SetMemoryCommand(Switcher.OFF), delayTime = 500)  // ATM0
+        obdConnection.run(SetMemoryCommand(), delayTime = 500)  // ATM0
         obdConnection.run(SetLineFeedCommand(Switcher.OFF), delayTime = 500)// ATL0
         obdConnection.run(SetSpacesCommand(Switcher.OFF), delayTime = 500)  // ATS0
         obdConnection.run(DeviceDescriptorCommand(), delayTime = 500)       // AT@1
         obdConnection.run(DeviceInfoCommand(), delayTime = 500)             // ATI
-        obdConnection.run(HeadersCommand(Switcher.OFF), delayTime = 500)    // ATH0
+        obdConnection.run(HeadersCommand(), delayTime = 500)    // ATH0
         obdConnection.run(SetAdaptiveTimingCommand(AdaptiveTimingMode.AUTO_1), delayTime = 500) // ATH0
         obdConnection.run(DisplayProtoNumberCommand(), delayTime = 500)     // ATH0
         obdConnection.run(SelectProtocolCommand(ObdProtocols.AUTO), delayTime = 500) // ATSP0

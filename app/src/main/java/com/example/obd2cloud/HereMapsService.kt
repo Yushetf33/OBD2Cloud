@@ -37,7 +37,7 @@ class HereMapsService(
         }
     }
 
-    fun obtenerMaxSpeed(callback: (String?) -> Unit) {
+    private fun obtenerMaxSpeed(callback: (String?) -> Unit) {
         // Usa LocationService para obtener la ubicación
         locationService.obtenerUbicacionActual { location ->
             if (location != null) {
