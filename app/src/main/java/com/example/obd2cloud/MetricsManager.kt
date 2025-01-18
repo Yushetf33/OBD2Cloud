@@ -15,6 +15,12 @@ import java.util.Locale
 
 class MetricsManager(private val context: Context, private val sensorHelper: SensorManagerHelper) {
 
+    private var isLoggingEnabled = true  // Bandera para controlar el log de métricas
+
+    fun setLoggingEnabled(enabled: Boolean) {
+        isLoggingEnabled = enabled
+    }
+
     fun logMetricsToExcel(
         fileName: String,
         currentRPM: TextView,
@@ -26,6 +32,9 @@ class MetricsManager(private val context: Context, private val sensorHelper: Sen
         currentGear: TextView,
         touchCount: Int
     ) {
+        if (!isLoggingEnabled)
+            return  // Si el logging está desactivado, no hacer nada
+
         Log.d("MetricsManager", "logMetricsToExcel called with fileName: $fileName")
 
         val dir = File(context.getExternalFilesDir(null), "MyAppData")

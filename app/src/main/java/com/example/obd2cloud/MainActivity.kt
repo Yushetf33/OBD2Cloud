@@ -7,7 +7,6 @@ import android.bluetooth.BluetoothAdapter
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.Manifest
-import android.annotation.SuppressLint
 import android.icu.text.SimpleDateFormat
 import android.os.Build
 import android.os.Bundle
@@ -16,9 +15,7 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.MotionEvent
-import android.view.View
 import android.view.WindowManager
-import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
@@ -39,16 +36,10 @@ import java.util.Date
 import java.util.Locale
 
 
-class MainActivity : AppCompatActivity(), View.OnClickListener  {
+class MainActivity : AppCompatActivity() {
     private var menu: Menu? = null
-    private lateinit var connectionStatus: TextView
     private lateinit var speedDisplay: TextView
-    private lateinit var rpmDisplay: TextView
-    private lateinit var throttleDisplay: TextView
-    private lateinit var maxspeedDisplay: TextView
-    private lateinit var engineLoadDisplay: TextView
-    private lateinit var fuelDisplay: TextView
-    private lateinit var gearDisplay: TextView
+    private lateinit var maxSpeedDisplay: TextView
 
     private var address: String = ""
     private lateinit var updateUI: UpdateUI
@@ -56,11 +47,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
     private lateinit var sensorManagerHelper: SensorManagerHelper
     private lateinit var bluetoothClient: BluetoothClient
     private var connected: Boolean = false
-    private var read: Boolean = true
     private var save: Boolean = false
-    private lateinit var stop: Button
     private var bt: MenuItem? = null
-    private var job: Job? = null
     private var loggingJob: Job? = null
 
 
@@ -86,8 +74,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
         setContentView(R.layout.activity_main)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
+        maxSpeedDisplay = findViewById(R.id.maxSpeed_display)
         setupToolbar()
-        initializeUI()
         initializeServices()
         initializePermissionLauncher()
         sensorManagerHelper = SensorManagerHelper(this)
@@ -98,23 +86,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
     private fun setupToolbar() {
         val toolbar = findViewById<MaterialToolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
-    }
-
-    // Inicializar los elementos de la interfaz de usuario
-    private fun initializeUI() {
-        connectionStatus = findViewById(R.id.connection_indicator)
-        speedDisplay = findViewById(R.id.speed_display)
-        rpmDisplay = findViewById(R.id.RPM_display)
-        fuelDisplay = findViewById(R.id.fuel_display)
-        gearDisplay = findViewById(R.id.gear_display)
-        throttleDisplay = findViewById(R.id.throttle_display)
-        maxspeedDisplay = findViewById(R.id.maxSpeed_display)
-        engineLoadDisplay = findViewById(R.id.engine_load_display)
-        stop = findViewById(R.id.stop)
-
-        stop.setOnClickListener(this)
-        stop.isEnabled = false
-        connectionStatus.text = getString(R.string.not_connected)
     }
 
     // Inicializar servicios de ubicación y mapas
@@ -186,9 +157,9 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
                                 if (mostFrequentMaxSpeed != null) {
                                     velocidadAnterior = mostFrequentMaxSpeed // Actualiza la velocidad anterior
                                     currentMaxSpeed = velocidadAnterior.toString()
-                                    maxspeedDisplay.text = mostFrequentMaxSpeed
+                                    maxSpeedDisplay.text = mostFrequentMaxSpeed
                                 } else {
-                                    maxspeedDisplay.text = velocidadAnterior ?: "N/A" // Muestra la velocidad anterior si no hay resultados
+                                    maxSpeedDisplay.text = velocidadAnterior ?: "N/A" // Muestra la velocidad anterior si no hay resultados
                                 }
                             }
 
@@ -199,7 +170,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
                         Log.d("MainActivity", "La respuesta fue nula.")
                         // Muestra la velocidad anterior si la respuesta es nula
                         runOnUiThread {
-                            maxspeedDisplay.text = velocidadAnterior ?: "N/A"
+                            maxSpeedDisplay.text = velocidadAnterior ?: "N/A"
                         }
                     }
                 }
@@ -214,7 +185,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
         hereMapsService.obtenerMaxSpeedSeguido { maxSpeed ->
             // Actualiza el TextView en el hilo principal
             runOnUiThread {
-                maxspeedDisplay.text = maxSpeed ?: "Error o sin datos"
+                maxSpeedDisplay.text = maxSpeed ?: "Error o sin datos"
             }
         }
     }
@@ -257,13 +228,13 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
                             try {
                                 metricsManager.logMetricsToExcel(
                                     fileName = fileName,
-                                    currentRPM = rpmDisplay,
-                                    currentFuelTrim = fuelDisplay,
-                                    currentSpeed = speedDisplay,
-                                    currentThrottle = throttleDisplay,
-                                    currentEngineLoad = engineLoadDisplay,
-                                    currentMaxSpeed = maxspeedDisplay,
-                                    currentGear = gearDisplay,
+                                    currentRPM = findViewById(R.id.RPM_display),
+                                    currentFuelTrim = findViewById(R.id.fuel_display),
+                                    currentSpeed = findViewById(R.id.speed_display),
+                                    currentThrottle = findViewById(R.id.throttle_display),
+                                    currentEngineLoad = findViewById(R.id.engine_load_display),
+                                    currentMaxSpeed = maxSpeedDisplay,
+                                    currentGear = findViewById(R.id.RPM_display),
                                     touchCount = touchCount
                                 )
                             } catch (e: Exception) {
@@ -305,33 +276,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
         return false
     }
 
-    // Se encargsa de la interfaz de usuario
-    @SuppressLint("SuspiciousIndentation")
-    @RequiresApi(Build.VERSION_CODES.Q)
-    private suspend fun display() {
-        if (connected) {
-            withContext(Dispatchers.Main) {
-                connectionStatus.text = getString(R.string.connected)
-                stop.isEnabled = true
-                bt?.isEnabled = false
-                bt?.icon?.alpha = 120
-            }
-            job = CoroutineScope(Dispatchers.IO).launch {
-
-                updateUI = UpdateUI(
-                    rpmDisplay = rpmDisplay,
-                    fuelDisplay = fuelDisplay,
-                    speedDisplay = speedDisplay,
-                    throttleDisplay = throttleDisplay,
-                    engineLoadDisplay = engineLoadDisplay,
-                    gearDisplay = gearDisplay,
-                    bluetoothClient = bluetoothClient
-                )
-                updateUI.startMetricsUpdateJob { read }
-            }
-        }
-    }
-
     suspend fun countResponses(response: String, responseCountMap: MutableMap<String, Int>) {
         // Dividir el String de respuestas en una lista de palabras
         val responseList = response.split(",").map { it.trim().trim('"') }
@@ -366,28 +310,6 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
         return super.onTouchEvent(event)
     }
 
-    override fun onClick(v: View?) {
-        when (v?.id) {
-            R.id.stop -> {
-                resetDisplays()
-                updateUI.cancelMetricsUpdateJob()
-
-                // Actualizar el estado de la conexión
-                connected = false
-                bluetoothClient.disconnect()
-
-                // Actualizar la UI
-                connectionStatus.text = getString(R.string.not_connected)
-                stop.isEnabled = false
-                bt?.isEnabled = true
-                bt?.icon?.alpha = 255
-
-                // Restablecer variables relacionadas con el conteo
-                touchCount = 0
-            }
-        }
-    }
-
     @RequiresApi(Build.VERSION_CODES.Q)
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -395,34 +317,22 @@ class MainActivity : AppCompatActivity(), View.OnClickListener  {
         if (requestCode == 1 && resultCode == RESULT_OK) {
             val extras = data?.extras
             address = extras?.getString("device_address").orEmpty()
-            Log.e("address", address)
-            connectionStatus.text = getString(R.string.connecting_address, address)
 
-            val device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(address)
 
-            bluetoothClient = BluetoothClient(device)
-
-            bluetoothClient.connectAndNotify { status ->
-                connectionStatus.text = status
-                Log.d(status, status)
-                if (status.contains("Connected to")) {
-                    connected = true
-                    CoroutineScope(Dispatchers.Main).launch {
-                        display()
+            if (BluetoothAdapter.checkBluetoothAddress(address)) {
+                val device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(address)
+                bluetoothClient = BluetoothClient(device)
+                updateUI = UpdateUI(this, bluetoothClient, metricsManager)
+                updateUI.initializeUI()
+                bluetoothClient.connectAndNotify { status ->
+                    updateUI.updateConnectionStatus(status)
+                    if (status.contains("Connected to")) {
+                        connected = true
+                        updateUI.handleConnectionStart()
                     }
                 }
             }
         }
-    }
-
-    private fun resetDisplays() {
-        rpmDisplay.text = getString(R.string.default_display)
-        speedDisplay.text = getString(R.string.default_display)
-        throttleDisplay.text = getString(R.string.default_display)
-        maxspeedDisplay.text = getString(R.string.default_display)
-        fuelDisplay.text = getString(R.string.default_display)
-        engineLoadDisplay.text = getString(R.string.default_display)
-        gearDisplay.text = getString(R.string.default_display)
     }
 
     override fun onResume() {

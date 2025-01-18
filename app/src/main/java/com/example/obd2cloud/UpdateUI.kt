@@ -1,22 +1,69 @@
 package com.example.obd2cloud
 
+import android.app.Activity
 import android.util.Log
+import android.widget.Button
 import android.widget.TextView
 import kotlinx.coroutines.*
 
 class UpdateUI(
-    private var rpmDisplay: TextView,
-    private var fuelDisplay: TextView,
-    private var speedDisplay: TextView,
-    private var throttleDisplay: TextView,
-    private var engineLoadDisplay: TextView,
-    private var gearDisplay: TextView,
+    private val activity: Activity, // Para acceder a findViewById y recursos
     private val bluetoothClient: BluetoothClient,
+    private val metricsManager: MetricsManager
 ) {
+    private lateinit var connectionStatus: TextView
+    private lateinit var speedDisplay: TextView
+    private lateinit var rpmDisplay: TextView
+    private lateinit var throttleDisplay: TextView
+    private lateinit var maxspeedDisplay: TextView
+    private lateinit var engineLoadDisplay: TextView
+    private lateinit var fuelDisplay: TextView
+    private lateinit var gearDisplay: TextView
+    private lateinit var stopButton: Button
 
-    private var metricsUpdateJob: Job? = null // Referencia al Job
+    private var metricsUpdateJob: Job? = null
 
-    fun startMetricsUpdateJob(readFlag: () -> Boolean) {
+
+    fun initializeUI() {
+        // Inicializar elementos de la UI
+        connectionStatus = activity.findViewById(R.id.connection_indicator)
+        speedDisplay = activity.findViewById(R.id.speed_display)
+        rpmDisplay = activity.findViewById(R.id.RPM_display)
+        fuelDisplay = activity.findViewById(R.id.fuel_display)
+        gearDisplay = activity.findViewById(R.id.gear_display)
+        throttleDisplay = activity.findViewById(R.id.throttle_display)
+        maxspeedDisplay = activity.findViewById(R.id.maxSpeed_display)
+        engineLoadDisplay = activity.findViewById(R.id.engine_load_display)
+        stopButton = activity.findViewById(R.id.stop)
+
+        stopButton.setOnClickListener {
+            handleStopButtonClick()
+        }
+    }
+
+    private fun handleStopButtonClick() {
+        metricsManager.setLoggingEnabled(false)
+        stopMetricsUpdate() // Detener la actualización de métricas
+        updateConnectionStatus("Disconnected")
+        resetDisplays() // Restablecer las vistas a su estado inicial
+
+        // Actualizar el estado de la conexión
+        stopButton.isEnabled = false
+
+        // Llamar al método para desconectar el cliente Bluetooth
+        bluetoothClient.disconnect()
+
+        Log.d("UpdateUI", "Stopped metrics update and disconnected.")
+    }
+
+    fun updateConnectionStatus(status: String) {
+        activity.runOnUiThread {
+            connectionStatus.text = status
+            stopButton.isEnabled = status == "Connected"
+        }
+    }
+
+    private fun startMetricsUpdateJob(readFlag: () -> Boolean) {
         Log.d("UpdateUI", "Iniciando actualización de métricas")
         metricsUpdateJob = CoroutineScope(Dispatchers.IO).launch {
             while (readFlag()) {
@@ -36,14 +83,27 @@ class UpdateUI(
         }
     }
 
+    fun stopMetricsUpdate() {
+        metricsUpdateJob?.cancel()
+        metricsUpdateJob = null
+    }
 
-    fun cancelMetricsUpdateJob() {
-        if (metricsUpdateJob?.isActive == true) {
-            Log.d("UpdateUI", "Cancelando la actualización de métricas.")
-            metricsUpdateJob?.cancel()
-        } else {
-            Log.d("UpdateUI", "No hay ningún trabajo de actualización activo para cancelar.")
-        }
+    fun handleConnectionStart() {
+        updateConnectionStatus("Connected")
+        stopButton.isEnabled = true
+
+        // Iniciar actualización de métricas
+        startMetricsUpdateJob { true } // O usa un flag para el estado real
+    }
+
+    fun resetDisplays() {
+        rpmDisplay.text = "_._"
+        speedDisplay.text = "_._"
+        throttleDisplay.text = "_._"
+        maxspeedDisplay.text = "_._"
+        fuelDisplay.text = "_._"
+        engineLoadDisplay.text = "_._"
+        gearDisplay.text = "_._"
     }
 
     private suspend fun updateMetrics(rpm: String, fuelTrim: String, speed: String, throttle: String, engineLoad: String, gear: String) {

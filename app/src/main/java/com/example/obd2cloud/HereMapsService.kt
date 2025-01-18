@@ -1,6 +1,11 @@
 package com.example.obd2cloud
 
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -10,6 +15,7 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
 
+
 class HereMapsService(
     private val locationService: LocationService, // Servicio de ubicación
     private val apiKey: String // Clave API de HERE Maps
@@ -18,16 +24,17 @@ class HereMapsService(
     private var ultimaVelocidadMaxima: String? = null // Variable para almacenar la última velocidad máxima válida
 
     fun obtenerMaxSpeedSeguido(callback: (String?) -> Unit) {
-        val handler = android.os.Handler(android.os.Looper.getMainLooper())
-        handler.post(object : Runnable {
-            override fun run() {
+        // Lanza la coroutine en el hilo principal
+        val scope = CoroutineScope(Dispatchers.Main)
+        scope.launch {
+            while (isActive) { // Se mantiene ejecutando mientras esté activa la coroutine
                 obtenerMaxSpeed { maxSpeed ->
-                    // Aquí se pasa el valor de maxSpeed a través del callback
+                    // Devuelve el resultado en el hilo principal
                     callback(maxSpeed)
                 }
-                handler.postDelayed(this, 7000) // Repite cada 5 segundos
+                delay(5000) // Pausa de 5 segundos antes de volver a ejecutar
             }
-        })
+        }
     }
 
     fun obtenerMaxSpeed(callback: (String?) -> Unit) {
