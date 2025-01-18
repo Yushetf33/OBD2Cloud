@@ -1,4 +1,3 @@
-
 @file:Suppress("DEPRECATION")
 
 package com.example.obd2cloud
@@ -35,7 +34,6 @@ import org.json.JSONException
 import java.util.Date
 import java.util.Locale
 
-
 class MainActivity : AppCompatActivity() {
     private var menu: Menu? = null
     private lateinit var speedDisplay: TextView
@@ -51,7 +49,6 @@ class MainActivity : AppCompatActivity() {
     private var bt: MenuItem? = null
     private var loggingJob: Job? = null
 
-
     private lateinit var locationService: LocationService
     private lateinit var openStreetMapService: OpenStreetMapService
     private lateinit var hereMapsService: HereMapsService
@@ -63,7 +60,6 @@ class MainActivity : AppCompatActivity() {
     private var touchCount: Int = 0
     private var currentMaxSpeed: String = ""
     private var responseCountMap = mutableMapOf("tranquilo" to 0, "agresiva" to 0, "normal" to 0)
-
 
     private var fileName: String = "vehicle_data_${SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())}.xlsx" //cambiar extension para json o csv
     private var fileNameJson: String = "vehicle_data_${SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())}.json" //cambiar extension para json o csv
@@ -234,7 +230,7 @@ class MainActivity : AppCompatActivity() {
                                     currentThrottle = findViewById(R.id.throttle_display),
                                     currentEngineLoad = findViewById(R.id.engine_load_display),
                                     currentMaxSpeed = maxSpeedDisplay,
-                                    currentGear = findViewById(R.id.RPM_display),
+                                    currentGear = findViewById(R.id.gear_display),
                                     touchCount = touchCount
                                 )
                             } catch (e: Exception) {
@@ -274,6 +270,18 @@ class MainActivity : AppCompatActivity() {
             }
         }
         return false
+    }
+
+    // En MainActivity, crea este método para actualizar el menú:
+    fun updateLoggingMenuItemText(isLogging: Boolean) {
+        val menuItem = menu?.findItem(R.id.rec)
+        if (isLogging) {
+            menuItem?.title = "Stop logging"
+            save = true
+        } else {
+            menuItem?.title = "Start logging"
+            save = false
+        }
     }
 
     suspend fun countResponses(response: String, responseCountMap: MutableMap<String, Int>) {
@@ -318,11 +326,10 @@ class MainActivity : AppCompatActivity() {
             val extras = data?.extras
             address = extras?.getString("device_address").orEmpty()
 
-
             if (BluetoothAdapter.checkBluetoothAddress(address)) {
                 val device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(address)
                 bluetoothClient = BluetoothClient(device)
-                updateUI = UpdateUI(this, bluetoothClient, metricsManager)
+                updateUI = UpdateUI(this, bluetoothClient, this)
                 updateUI.initializeUI()
                 bluetoothClient.connectAndNotify { status ->
                     updateUI.updateConnectionStatus(status)

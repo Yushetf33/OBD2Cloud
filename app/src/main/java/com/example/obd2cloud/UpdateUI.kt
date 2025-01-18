@@ -9,7 +9,7 @@ import kotlinx.coroutines.*
 class UpdateUI(
     private val activity: Activity, // Para acceder a findViewById y recursos
     private val bluetoothClient: BluetoothClient,
-    private val metricsManager: MetricsManager
+    private val mainActivity: MainActivity // Agregar referencia a MainActivity
 ) {
     private lateinit var connectionStatus: TextView
     private lateinit var speedDisplay: TextView
@@ -22,7 +22,6 @@ class UpdateUI(
     private lateinit var stopButton: Button
 
     private var metricsUpdateJob: Job? = null
-
 
     fun initializeUI() {
         // Inicializar elementos de la UI
@@ -42,7 +41,7 @@ class UpdateUI(
     }
 
     private fun handleStopButtonClick() {
-        metricsManager.setLoggingEnabled(false)
+        mainActivity.updateLoggingMenuItemText(false) // Indicamos que el logging ha parado
         stopMetricsUpdate() // Detener la actualización de métricas
         updateConnectionStatus("Disconnected")
         resetDisplays() // Restablecer las vistas a su estado inicial
@@ -54,6 +53,8 @@ class UpdateUI(
         bluetoothClient.disconnect()
 
         Log.d("UpdateUI", "Stopped metrics update and disconnected.")
+
+        // Notificar a MainActivity para actualizar el menú
     }
 
     fun updateConnectionStatus(status: String) {
