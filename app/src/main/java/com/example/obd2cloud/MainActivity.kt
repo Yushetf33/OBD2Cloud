@@ -134,50 +134,58 @@ class MainActivity : AppCompatActivity() {
                 if (!save && connected) {
                     updateLoggingMenuItemText(true)
                     loggingJob = CoroutineScope(Dispatchers.IO).launch {
-                        while (save) {
+                        try {
+                            while (save) {
+                                try {
+                                    metricsManager.logMetricsToExcel(
+                                        fileName = fileName,
+                                        currentRPM = findViewById(R.id.RPM_display),
+                                        currentFuelTrim = findViewById(R.id.fuel_display),
+                                        currentSpeed = findViewById(R.id.speed_display),
+                                        currentThrottle = findViewById(R.id.throttle_display),
+                                        currentEngineLoad = findViewById(R.id.engine_load_display),
+                                        currentMaxSpeed = maxSpeedDisplay,
+                                        currentGear = findViewById(R.id.gear_display),
+                                        touchCount = touchCount
+                                    )
+                                } catch (e: Exception) {
+                                    Log.e("LoggingJob", "Error in logMetricsToExcel: ${e.message}")
+                                }
+                                delay(400) // Pausa entre iteraciones
+                            }
+                        } finally {
+                            // Código que se ejecuta al salir del bucle, incluso si la corutina fue cancelada
                             try {
-                                metricsManager.logMetricsToExcel(
-                                    fileName = fileName,
-                                    currentRPM = findViewById(R.id.RPM_display),
-                                    currentFuelTrim = findViewById(R.id.fuel_display),
-                                    currentSpeed = findViewById(R.id.speed_display),
-                                    currentThrottle = findViewById(R.id.throttle_display),
-                                    currentEngineLoad = findViewById(R.id.engine_load_display),
-                                    currentMaxSpeed = maxSpeedDisplay,
-                                    currentGear = findViewById(R.id.gear_display),
-                                    touchCount = touchCount
-                                )
+                                Log.d("ARRANQUE JSON", "INICIANDO LLAMADA A LOG JSON")
+                                val jsonString = metricsManager.convertExcelToStructuredJson(fileName)
+                                filePath = metricsManager.saveJsonToFile(jsonString, fileNameJson)
+                                val apiDrivingStyle = ApiDrivingStyle(token = "tu_token", apiUrl = "tu_api_url")
+                                val response = apiDrivingStyle.sendPostRequest(filePath)
+                                countResponses(response, responseCountMap)
+
+                                // Pasar datos a PieChartActivity
+                                withContext(Dispatchers.Main) {
+                                    val intent = Intent(this@MainActivity, PieChartActivity::class.java).apply {
+                                        putExtra("tranquilo", responseCountMap["tranquilo"] ?: 0)
+                                        putExtra("agresiva", responseCountMap["agresiva"] ?: 0)
+                                        putExtra("normal", responseCountMap["normal"] ?: 0)
+                                        putExtra("fileNameJson", filePath)
+                                    }
+                                    startActivity(intent)
+                                }
                             } catch (e: Exception) {
-                                Log.e("LoggingJob", "Error in logMetricsToExcel: ${e.message}")
+                                Log.e("LoggingJob", "Error outside loop: ${e.message}")
                             }
-                            delay(400)
-                        }
-                        // Si deseas convertir a JSON después
-                        val jsonString = metricsManager.convertExcelToStructuredJson(fileName)
-                        filePath = metricsManager.saveJsonToFile(jsonString, fileNameJson)
-                        val apiDrivingStyle = ApiDrivingStyle(token = "tu_token", apiUrl = "tu_api_url")
-                        val response = apiDrivingStyle.sendPostRequest(filePath)
-                        countResponses(response, responseCountMap)
-                        // Pasar datos a PieChartActivity
-                        withContext(Dispatchers.Main) {
-                            val intent = Intent(this@MainActivity, PieChartActivity::class.java).apply {
-                                putExtra("tranquilo", responseCountMap["tranquilo"] ?: 0)
-                                putExtra("agresiva", responseCountMap["agresiva"] ?: 0)
-                                putExtra("normal", responseCountMap["normal"] ?: 0)
-                                putExtra("fileNameJson", filePath)
-                            }
-                            startActivity(intent)
                         }
                     }
-
                 } else {
                     updateLoggingMenuItemText(false)
                     cancelLoggingJob()
                 }
+                return true
             }
 
             R.id.show_statistics -> {
-                // Iniciar la actividad de gráficos
                 val intent = Intent(this, PieChartActivity::class.java)
                 intent.putExtra("tranquilo", responseCountMap["tranquilo"] ?: 0)
                 intent.putExtra("agresiva", responseCountMap["agresiva"] ?: 0)
@@ -188,7 +196,7 @@ class MainActivity : AppCompatActivity() {
                 return true
             }
         }
-        return false
+        return super.onOptionsItemSelected(item)
     }
 
     fun cancelLoggingJob() {

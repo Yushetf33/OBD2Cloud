@@ -42,12 +42,12 @@ class UpdateUI(
 
     private fun handleStopButtonClick() {
         mainActivity.updateLoggingMenuItemText(false) // Indicamos que el logging ha parado
-        mainActivity.cancelLoggingJob()
         stopMetricsUpdate() // Detener la actualización de métricas
         updateConnectionStatus("Disconnected")
         resetDisplays() // Restablecer las vistas a su estado inicial
         stopButton.isEnabled = false
         bluetoothClient.disconnect()
+        mainActivity.cancelLoggingJob()
         Log.d("UpdateUI", "Stopped metrics update and disconnected.")
     }
 

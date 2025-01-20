@@ -51,12 +51,16 @@ class MetricsManager(private val context: Context, private val sensorHelper: Sen
                 ).forEachIndexed { index, title -> headerRow.createCell(index).setCellValue(title) }
             }
 
+            fun processValue(value: String): String {
+                return if (value == "_._" || value.isEmpty() || value == "!DATA" || value == "?NaN") "0" else value
+            }
+
             val currentRow = sheet.createRow(sheet.lastRowNum + 1)
             currentRow.createCell(0).setCellValue(touchCount.toDouble())
             currentRow.createCell(1).setCellValue(currentRPM.text.toString())
-            currentRow.createCell(2).setCellValue(currentFuelTrim.text.toString())
+            currentRow.createCell(2).setCellValue(processValue(currentFuelTrim.text.toString()))
             currentRow.createCell(3).setCellValue(currentSpeed.text.toString())
-            currentRow.createCell(4).setCellValue(currentThrottle.text.toString())
+            currentRow.createCell(4).setCellValue(processValue(currentThrottle.text.toString()))
             currentRow.createCell(5).setCellValue(currentEngineLoad.text.toString())
             currentRow.createCell(6).setCellValue(currentMaxSpeed.text.toString())
             currentRow.createCell(7).setCellValue(currentGear.text.toString())
@@ -66,7 +70,6 @@ class MetricsManager(private val context: Context, private val sensorHelper: Sen
             currentRow.createCell(11).setCellValue(df.format(accelX))
             currentRow.createCell(12).setCellValue(df.format(accelY))
             currentRow.createCell(13).setCellValue(df.format(accelZ))
-
             val outputStream = FileOutputStream(file)
             workbook.write(outputStream)
             outputStream.close()
