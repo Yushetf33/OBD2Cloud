@@ -172,8 +172,7 @@ class MainActivity : AppCompatActivity() {
 
                 } else {
                     updateLoggingMenuItemText(false)
-                    loggingJob?.cancel() // Cancelar la corutina
-                    loggingJob = null
+                    cancelLoggingJob()
                 }
             }
 
@@ -190,6 +189,11 @@ class MainActivity : AppCompatActivity() {
             }
         }
         return false
+    }
+
+    fun cancelLoggingJob() {
+        loggingJob?.cancel() // Cancelar la corutina
+        loggingJob = null
     }
 
     fun updateLoggingMenuItemText(isLogging: Boolean) {

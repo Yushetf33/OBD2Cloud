@@ -42,25 +42,18 @@ class UpdateUI(
 
     private fun handleStopButtonClick() {
         mainActivity.updateLoggingMenuItemText(false) // Indicamos que el logging ha parado
+        mainActivity.cancelLoggingJob()
         stopMetricsUpdate() // Detener la actualización de métricas
         updateConnectionStatus("Disconnected")
         resetDisplays() // Restablecer las vistas a su estado inicial
-
-        // Actualizar el estado de la conexión
         stopButton.isEnabled = false
-
-        // Llamar al método para desconectar el cliente Bluetooth
         bluetoothClient.disconnect()
-
         Log.d("UpdateUI", "Stopped metrics update and disconnected.")
-
-        // Notificar a MainActivity para actualizar el menú
     }
 
     fun updateConnectionStatus(status: String) {
         activity.runOnUiThread {
             connectionStatus.text = status
-            stopButton.isEnabled = status == "Connected"
         }
     }
 
@@ -97,13 +90,15 @@ class UpdateUI(
     }
 
     private fun resetDisplays() {
-        rpmDisplay.text = "_._"
-        speedDisplay.text = "_._"
-        throttleDisplay.text = "_._"
-        maxspeedDisplay.text = "_._"
-        fuelDisplay.text = "_._"
-        engineLoadDisplay.text = "_._"
-        gearDisplay.text = "_._"
+        activity.runOnUiThread {
+            rpmDisplay.text = "_._"
+            speedDisplay.text = "_._"
+            throttleDisplay.text = "_._"
+            maxspeedDisplay.text = "_._"
+            fuelDisplay.text = "_._"
+            engineLoadDisplay.text = "_._"
+            gearDisplay.text = "_._"
+        }
     }
 
     private suspend fun updateMetrics(rpm: String, fuelTrim: String, speed: String, throttle: String, engineLoad: String, gear: String) {
