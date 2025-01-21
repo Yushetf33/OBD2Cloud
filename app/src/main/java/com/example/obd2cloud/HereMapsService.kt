@@ -2,6 +2,7 @@ package com.example.obd2cloud
 
 import android.util.Log
 import android.location.Location
+import android.widget.Toast
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -16,7 +17,6 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
 
-
 class HereMapsService(
     private val locationService: LocationService,
     private val apiKey: String
@@ -24,38 +24,76 @@ class HereMapsService(
     private val client = OkHttpClient()
     private var ultimaUbicacion: Location? = null // Última ubicación registrada
     private var ultimaVelocidadMaxima: String? = null // Última velocidad máxima válida
+    private var velocidadActual: Float = 0f
 
     fun obtenerMaxSpeedSeguido(callback: (String?) -> Unit) {
         val scope = CoroutineScope(Dispatchers.Main)
         scope.launch {
-            // Primera consulta inmediata
+            // Primero, obtener la primera ubicación antes de la consulta
             obtenerMaxSpeed { maxSpeed ->
                 callback(maxSpeed) // Actualiza la interfaz con la primera velocidad máxima
             }
+            val nuevaUbicacion = locationService.obtenerUbicacionActual()
 
-            // Ciclo para consultas posteriores
-            while (isActive) {
-                locationService.obtenerUbicacionActual { nuevaUbicacion ->
-                    if (nuevaUbicacion != null && shouldMakeQuery(nuevaUbicacion)) {
-                        ultimaUbicacion = nuevaUbicacion // Actualiza la última ubicación
+            if (nuevaUbicacion != null) {
+                ultimaUbicacion = nuevaUbicacion // Guardamos la primera ubicación
+                // Realizar la primera consulta
+                obtenerMaxSpeed { maxSpeed ->
+                    callback(maxSpeed) // Actualiza la interfaz con la primera velocidad máxima
+                }
+
+                // Ciclo de consulta continua
+                while (isActive) {
+                    val nuevaUbicacion = locationService.obtenerUbicacionActual()
+                    Log.d("HereMapsService", "Ubicación obtenida: $nuevaUbicacion")
+                    if (nuevaUbicacion != null) {
+                        velocidadActual = nuevaUbicacion.speed * 3.6f
+
+                        // Log para ver la velocidad actual
+                        Log.d("HereMapsService", "Velocidad actual: $velocidadActual km/h")
+
+                        if (shouldMakeQuery(nuevaUbicacion)) {
+                            ultimaUbicacion = nuevaUbicacion // Actualiza la última ubicación
                             obtenerMaxSpeed { maxSpeed ->
                                 callback(maxSpeed) // Actualiza la velocidad máxima
                             }
+                        } else {
+                            callback(ultimaVelocidadMaxima) // Devuelve la última velocidad válida
+                        }
                     } else {
-                        // Si no se cumple la condición, devuelve la última velocidad válida
-                        callback(ultimaVelocidadMaxima)
+                        callback(ultimaVelocidadMaxima) // En caso de que no haya nueva ubicación
                     }
+                    delay(5000) // Realiza la consulta cada 5 segundos
                 }
-                delay(5000) // Espera antes de la siguiente verificación
+            } else {
+                Log.e("HereMapsService", "No se pudo obtener la primera ubicación.")
+                callback(ultimaVelocidadMaxima) // Si no se pudo obtener la ubicación inicial
             }
         }
     }
 
+    fun actualizarVelocidad(nuevaVelocidad: String) {
+        velocidadActual = nuevaVelocidad.toFloat()
+    }
+
+    private fun calcularDistanciaMinima(velocidadActual: Float): Float {
+        return when {
+            velocidadActual < 30 -> 45f
+            velocidadActual < 50 -> 70f
+            velocidadActual < 60 -> 85f// Si la velocidad es menor de 50 km/h
+            velocidadActual <= 100 -> 140f    // Si la velocidad está entre 50 y 100 km/h
+            else -> 230f                      // Si la velocidad es mayor de 100 km/h
+        }
+    }
+
     private fun shouldMakeQuery(nuevaUbicacion: Location): Boolean {
-        if (ultimaUbicacion == null) return true // Consulta siempre si no hay una última ubicación
-        val distancia = ultimaUbicacion!!.distanceTo(nuevaUbicacion)
-        Log.d("HereMapsService", "Distancia entre ubicaciones: $distancia metros")
-        return distancia >= 230 // Solo consulta si la distancia supera 230 metros
+        val distanciaMinima = calcularDistanciaMinima(velocidadActual)
+        val distancia = ultimaUbicacion?.distanceTo(nuevaUbicacion) ?: 0f
+
+        // Log para ver la distancia recorrida y la mínima requerida
+        Log.d("HereMapsService", "Velocidad: $velocidadActual km/h, Distancia recorrida: $distancia m, Distancia mínima requerida: $distanciaMinima m")
+
+        return distancia >= distanciaMinima
     }
 
     private fun obtenerMaxSpeed(callback: (String?) -> Unit) {
@@ -138,3 +176,4 @@ class HereMapsService(
         }
     }
 }
+

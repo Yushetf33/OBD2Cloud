@@ -47,7 +47,7 @@ class MainActivity : AppCompatActivity() {
     private var loggingJob: Job? = null
 
     private lateinit var locationService: LocationService
-    private lateinit var hereMapsService: HereMapsService
+    lateinit var hereMapsService: HereMapsService
     private lateinit var permisoUbicacionLauncher: ActivityResultLauncher<String>
     private val handler = android.os.Handler(Looper.getMainLooper())
 
