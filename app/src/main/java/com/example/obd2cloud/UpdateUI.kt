@@ -63,7 +63,6 @@ class UpdateUI(
                 // Consultar y actualizar las métricas secuencialmente
                 val rpm = rpm()
                 val speed = speed()
-                mainActivity.hereMapsService.actualizarVelocidad(speed)
                 val gear = calculateGear(rpm, speed).toString()
                 val fuelTrim = fuelTrim()
                 val throttle = throttle()
