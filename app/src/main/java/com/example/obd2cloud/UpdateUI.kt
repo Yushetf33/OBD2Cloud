@@ -15,7 +15,7 @@ class UpdateUI(
     private lateinit var speedDisplay: TextView
     private lateinit var rpmDisplay: TextView
     private lateinit var throttleDisplay: TextView
-    private lateinit var maxspeedDisplay: TextView
+    private lateinit var maxSpeedDisplay: TextView
     private lateinit var engineLoadDisplay: TextView
     private lateinit var fuelDisplay: TextView
     private lateinit var gearDisplay: TextView
@@ -30,7 +30,7 @@ class UpdateUI(
         fuelDisplay = activity.findViewById(R.id.fuel_display)
         gearDisplay = activity.findViewById(R.id.gear_display)
         throttleDisplay = activity.findViewById(R.id.throttle_display)
-        maxspeedDisplay = activity.findViewById(R.id.maxSpeed_display)
+        maxSpeedDisplay = activity.findViewById(R.id.maxSpeed_display)
         engineLoadDisplay = activity.findViewById(R.id.engine_load_display)
         stopButton = activity.findViewById(R.id.stop)
 
@@ -93,7 +93,7 @@ class UpdateUI(
             rpmDisplay.text = "_._"
             speedDisplay.text = "_._"
             throttleDisplay.text = "_._"
-            maxspeedDisplay.text = "_._"
+            maxSpeedDisplay.text = "_._"
             fuelDisplay.text = "_._"
             engineLoadDisplay.text = "_._"
             gearDisplay.text = "_._"

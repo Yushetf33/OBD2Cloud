@@ -1,4 +1,3 @@
-
 package com.example.obd2cloud
 
 import android.content.Context
@@ -17,13 +16,14 @@ class MetricsManager(private val context: Context, private val sensorHelper: Sen
 
     fun logMetricsToExcel(
         fileName: String,
-        currentRPM: TextView,
-        currentFuelTrim: TextView,
-        currentSpeed: TextView,
-        currentThrottle: TextView,
-        currentEngineLoad: TextView,
+        currentRPM: Int,
+        currentFuelTrim: Double,
+        currentSpeed: Int,
+        currentThrottle: Double,
+        currentEngineLoad: Double,
         currentMaxSpeed: TextView,
-        currentGear: TextView,
+        currentGear: Int,
+        speedDifference: Int,
         touchCount: Int
     ) {
 
@@ -45,7 +45,7 @@ class MetricsManager(private val context: Context, private val sensorHelper: Sen
                 val headerRow = sheet.createRow(0)
                 listOf(
                     "Touch Count", "RPM", "Fuel Trim", "Speed", "Throttle Position",
-                    "Engine Load", "Max Speed", "Gear",
+                    "Engine Load", "Max Speed", "Gear", "Speed Diference",
                     "Gyro X", "Gyro Y", "Gyro Z",
                     "Accel X", "Accel Y", "Accel Z"
                 ).forEachIndexed { index, title -> headerRow.createCell(index).setCellValue(title) }
@@ -56,20 +56,21 @@ class MetricsManager(private val context: Context, private val sensorHelper: Sen
             }
 
             val currentRow = sheet.createRow(sheet.lastRowNum + 1)
-            currentRow.createCell(0).setCellValue(touchCount.toDouble())
-            currentRow.createCell(1).setCellValue(currentRPM.text.toString())
-            currentRow.createCell(2).setCellValue(processValue(currentFuelTrim.text.toString()))
-            currentRow.createCell(3).setCellValue(currentSpeed.text.toString())
-            currentRow.createCell(4).setCellValue(processValue(currentThrottle.text.toString()))
-            currentRow.createCell(5).setCellValue(currentEngineLoad.text.toString())
+            currentRow.createCell(0).setCellValue(touchCount.toString())
+            currentRow.createCell(1).setCellValue(currentRPM.toString())
+            currentRow.createCell(2).setCellValue(processValue(currentFuelTrim.toString()))
+            currentRow.createCell(3).setCellValue(currentSpeed.toString())
+            currentRow.createCell(4).setCellValue(processValue(currentThrottle.toString()))
+            currentRow.createCell(5).setCellValue(currentEngineLoad.toString())
             currentRow.createCell(6).setCellValue(currentMaxSpeed.text.toString())
-            currentRow.createCell(7).setCellValue(currentGear.text.toString())
-            currentRow.createCell(8).setCellValue(df.format(gyroX))
-            currentRow.createCell(9).setCellValue(df.format(gyroY))
-            currentRow.createCell(10).setCellValue(df.format(gyroZ))
-            currentRow.createCell(11).setCellValue(df.format(accelX))
-            currentRow.createCell(12).setCellValue(df.format(accelY))
-            currentRow.createCell(13).setCellValue(df.format(accelZ))
+            currentRow.createCell(7).setCellValue(currentGear.toString())
+            currentRow.createCell(8).setCellValue(speedDifference.toString())
+            currentRow.createCell(9).setCellValue(df.format(gyroX))
+            currentRow.createCell(10).setCellValue(df.format(gyroY))
+            currentRow.createCell(11).setCellValue(df.format(gyroZ))
+            currentRow.createCell(12).setCellValue(df.format(accelX))
+            currentRow.createCell(13).setCellValue(df.format(accelY))
+            currentRow.createCell(14).setCellValue(df.format(accelZ))
             val outputStream = FileOutputStream(file)
             workbook.write(outputStream)
             outputStream.close()

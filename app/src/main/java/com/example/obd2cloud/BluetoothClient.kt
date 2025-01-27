@@ -4,7 +4,6 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import android.util.Log
-
 import com.github.eltonvs.obd.command.AdaptiveTimingMode
 import com.github.eltonvs.obd.command.ObdProtocols
 import com.github.eltonvs.obd.command.ObdResponse

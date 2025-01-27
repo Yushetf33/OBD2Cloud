@@ -2,7 +2,6 @@ package com.example.obd2cloud
 
 import android.util.Log
 import android.location.Location
-import android.widget.Toast
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -48,9 +47,6 @@ class HereMapsService(
                     Log.d("HereMapsService", "Ubicación obtenida: $nuevaUbicacion")
                     if (nuevaUbicacion != null) {
                         velocidadActual = nuevaUbicacion.speed * 3.6f
-
-                        // Log para ver la velocidad actual
-                        Log.d("HereMapsService", "Velocidad actual: $velocidadActual km/h")
 
                         if (shouldMakeQuery(nuevaUbicacion)) {
                             ultimaUbicacion = nuevaUbicacion // Actualiza la última ubicación

@@ -137,19 +137,30 @@ class MainActivity : AppCompatActivity() {
                         try {
                             while (save) {
                                 try {
+                                    // Obtén y convierte las vistas a valores
+                                    val currentRPM = findViewById<TextView>(R.id.RPM_display)?.text.toString().toIntOrNull() ?: 0
+                                    val currentFuelTrim = findViewById<TextView>(R.id.fuel_display)?.text.toString().toDoubleOrNull() ?: 0.0
+                                    val currentSpeed = findViewById<TextView>(R.id.speed_display)?.text.toString().toIntOrNull() ?: 0
+                                    val currentThrottle = findViewById<TextView>(R.id.throttle_display)?.text.toString().toDoubleOrNull() ?: 0.0
+                                    val currentEngineLoad = findViewById<TextView>(R.id.engine_load_display)?.text.toString().toDoubleOrNull() ?: 0.0
+                                    val currentGear = findViewById<TextView>(R.id.gear_display)?.text.toString().toIntOrNull() ?: 0
+                                    val speedDifference = currentSpeed - maxSpeedDisplay.text.toString().toInt()
+
+                                    // Llama al método logMetricsToExcel del metricsManager
                                     metricsManager.logMetricsToExcel(
                                         fileName = fileName,
-                                        currentRPM = findViewById(R.id.RPM_display),
-                                        currentFuelTrim = findViewById(R.id.fuel_display),
-                                        currentSpeed = findViewById(R.id.speed_display),
-                                        currentThrottle = findViewById(R.id.throttle_display),
-                                        currentEngineLoad = findViewById(R.id.engine_load_display),
+                                        currentRPM = currentRPM,
+                                        currentFuelTrim = currentFuelTrim,
+                                        currentSpeed = currentSpeed,
+                                        currentThrottle = currentThrottle,
+                                        currentEngineLoad = currentEngineLoad,
                                         currentMaxSpeed = maxSpeedDisplay,
-                                        currentGear = findViewById(R.id.gear_display),
+                                        currentGear = currentGear,
+                                        speedDifference = speedDifference,
                                         touchCount = touchCount
                                     )
                                 } catch (e: Exception) {
-                                    Log.e("LoggingJob", "Error in logMetricsToExcel: ${e.message}")
+                                    Log.e("LoggingJob", "Error logging metrics: ${e.message}")
                                 }
                                 delay(400) // Pausa entre iteraciones
                             }
