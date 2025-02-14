@@ -72,6 +72,8 @@ class GraphActivity : AppCompatActivity() {
 
             // Parsear el JSON completo
             val inputData = gson.fromJson(json, InputDataWrapper::class.java).inputData
+            if (inputData == null)
+                Log.e("GraphActivity", "Error: inputData es NULL")
 
             // Mapear los datos de cada fila a la clase VehicleData
             inputData.data.map { row ->

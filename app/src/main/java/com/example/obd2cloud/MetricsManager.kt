@@ -45,9 +45,9 @@ class MetricsManager(private val context: Context, private val sensorHelper: Sen
                 val headerRow = sheet.createRow(0)
                 listOf(
                     "Touch Count", "RPM", "Fuel Trim", "Speed", "Throttle Position",
-                    "Engine Load", "Max Speed", "Gear", "Speed Diference",
+                    "Engine Load", "Max Speed", "Gear",
                     "Gyro X", "Gyro Y", "Gyro Z",
-                    "Accel X", "Accel Y", "Accel Z"
+                    "Accel X", "Accel Y", "Accel Z", "Speed Diference"
                 ).forEachIndexed { index, title -> headerRow.createCell(index).setCellValue(title) }
             }
 
@@ -64,13 +64,14 @@ class MetricsManager(private val context: Context, private val sensorHelper: Sen
             currentRow.createCell(5).setCellValue(currentEngineLoad.toString())
             currentRow.createCell(6).setCellValue(currentMaxSpeed.text.toString())
             currentRow.createCell(7).setCellValue(currentGear.toString())
-            currentRow.createCell(8).setCellValue(speedDifference.toString())
-            currentRow.createCell(9).setCellValue(df.format(gyroX))
-            currentRow.createCell(10).setCellValue(df.format(gyroY))
-            currentRow.createCell(11).setCellValue(df.format(gyroZ))
-            currentRow.createCell(12).setCellValue(df.format(accelX))
-            currentRow.createCell(13).setCellValue(df.format(accelY))
-            currentRow.createCell(14).setCellValue(df.format(accelZ))
+            currentRow.createCell(8).setCellValue(df.format(gyroX))
+            currentRow.createCell(9).setCellValue(df.format(gyroY))
+            currentRow.createCell(10).setCellValue(df.format(gyroZ))
+            currentRow.createCell(11).setCellValue(df.format(accelX))
+            currentRow.createCell(12).setCellValue(df.format(accelY))
+            currentRow.createCell(13).setCellValue(df.format(accelZ))
+            currentRow.createCell(14).setCellValue(speedDifference.toString())
+
             val outputStream = FileOutputStream(file)
             workbook.write(outputStream)
             outputStream.close()

@@ -198,9 +198,10 @@ class PieChartActivity : AppCompatActivity() {
             val gson = Gson()
 
             // Parsear el JSON completo
-            val inputData = gson.fromJson(json, InputDataWrapper::class.java).inputData
+            val inputDataWrapper = gson.fromJson(json, InputDataWrapper::class.java)
+            Log.d("PieChartActivity", "Datos deserializados: ${inputDataWrapper?.inputData?.data?.size} registros")
 
-            // Mapear los datos de cada fila a la clase VehicleData
+            val inputData = inputDataWrapper.inputData
             inputData.data.map { row ->
                 VehicleData(
                     touchCount = row[0].toInt(),
@@ -224,5 +225,6 @@ class PieChartActivity : AppCompatActivity() {
             emptyList()
         }
     }
+
 }
 

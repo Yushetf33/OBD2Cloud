@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothAdapter
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.Manifest
+import android.content.Context
 import android.icu.text.SimpleDateFormat
 import android.os.Build
 import android.os.Bundle
@@ -29,6 +30,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import java.util.Date
 import java.util.Locale
 
@@ -170,9 +172,12 @@ class MainActivity : AppCompatActivity() {
                                 Log.d("ARRANQUE JSON", "INICIANDO LLAMADA A LOG JSON")
                                 val jsonString = metricsManager.convertExcelToStructuredJson(fileName)
                                 filePath = metricsManager.saveJsonToFile(jsonString, fileNameJson)
-                                val apiDrivingStyle = ApiDrivingStyle(token = "tu_token", apiUrl = "tu_api_url")
+                                val apiDrivingStyle = ApiDrivingStyle(token = "51QR8LSjQQ6iU7Kh1dfXgilsCCz5d0Oq765sqv6o4zkJuedx8TAaJQQJ99BBAAAAAAAAAAAAINFRAZML1MLk", apiUrl = "https://modelo-clasificacion-turbc.spaincentral.inference.ml.azure.com/score")
                                 val response = apiDrivingStyle.sendPostRequest(filePath)
-                                countResponses(response, responseCountMap)
+                                Log.d("DEBUG", "Respuesta cruda de la API: $response")
+                                countResponses(response, this@MainActivity)
+                                //fileNameJson contiene nombre del fichero con extension
+                                //jsonString contiene el contenido del JSON
 
                                 // Pasar datos a PieChartActivity
                                 withContext(Dispatchers.Main) {
@@ -180,7 +185,7 @@ class MainActivity : AppCompatActivity() {
                                         putExtra("tranquilo", responseCountMap["tranquilo"] ?: 0)
                                         putExtra("agresiva", responseCountMap["agresiva"] ?: 0)
                                         putExtra("normal", responseCountMap["normal"] ?: 0)
-                                        putExtra("fileNameJson", filePath)
+                                        putExtra("fileNameJson", fileNameJson)
                                     }
                                     startActivity(intent)
                                 }
@@ -226,32 +231,28 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun countResponses(response: String, responseCountMap: MutableMap<String, Int>) {
-        // Dividir el String de respuestas en una lista de palabras
-        val responseList = response.split(",").map { it.trim().trim('"') }
+    private suspend fun countResponses(response: String, context: Context) {
+        try {
+            // Convertir el String en un array JSON
+            val jsonArray = JSONArray(response)
 
-        // Recorrer la lista de respuestas y contar las ocurrencias
-        for (res in responseList) {
-            when (res) {
-                "tranquilo" -> responseCountMap["tranquilo"] = responseCountMap.getOrDefault("tranquilo", 0) + 1
-                "agresiva" -> responseCountMap["agresiva"] = responseCountMap.getOrDefault("agresiva", 0) + 1
-                "normal" -> responseCountMap["normal"] = responseCountMap.getOrDefault("normal", 0) + 1
-                else -> Log.e("ApiResponse", "Respuesta no válida: $res")
+            // Recorrer la lista de respuestas y contar las ocurrencias
+            for (i in 0 until jsonArray.length()) {
+                val res = jsonArray.getString(i)
+                when (res) {
+                    "tranquilo" -> responseCountMap["tranquilo"] = responseCountMap.getOrDefault("tranquilo", 0) + 1
+                    "agresiva" -> responseCountMap["agresiva"] = responseCountMap.getOrDefault("agresiva", 0) + 1
+                    "normal" -> responseCountMap["normal"] = responseCountMap.getOrDefault("normal", 0) + 1
+                    else -> Log.e("ApiResponse", "Respuesta no válida: $res")
+                }
             }
-        }
+            Log.d("countResponses", "Conteo de respuestas -> Tranquilo: ${responseCountMap["tranquilo"]}, Agresiva: ${responseCountMap["agresiva"]}, Normal: ${responseCountMap["normal"]}")
 
-        // Obtener los resultados desde el mapa de respuestas
-        val tranquiloCount = responseCountMap["tranquilo"] ?: 0
-        val agresivaCount = responseCountMap["agresiva"] ?: 0
-        val normalCount = responseCountMap["normal"] ?: 0
-
-        // Mostrar los resultados en Toast
-        withContext(Dispatchers.Main) {
-            Toast.makeText(applicationContext, "Tranquilo: $tranquiloCount", Toast.LENGTH_SHORT).show()
-            Toast.makeText(applicationContext, "Agresiva: $agresivaCount", Toast.LENGTH_SHORT).show()
-            Toast.makeText(applicationContext, "Normal: $normalCount", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Log.e("countResponses", "Error procesando la respuesta JSON: ${e.message}")
         }
     }
+
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
         if (save && event?.action == MotionEvent.ACTION_DOWN) {
