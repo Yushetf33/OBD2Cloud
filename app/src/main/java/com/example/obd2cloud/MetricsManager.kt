@@ -52,8 +52,17 @@ class MetricsManager(private val context: Context, private val sensorHelper: Sen
             }
 
             fun processValue(value: String): String {
-                return if (value == "_._" || value.isEmpty() || value == "!DATA" || value == "?NaN") "0" else value
+                return if (
+                    value == "_._" ||
+                    value.isEmpty() ||
+                    value == "!DATA" ||
+                    value == "?NaN" ||
+                    value.equals("NaN", ignoreCase = true) ||
+                    value.equals("Cargando", ignoreCase = true) ||
+                    value.equals("Loading", ignoreCase = true)
+                ) "0" else value
             }
+
 
             val currentRow = sheet.createRow(sheet.lastRowNum + 1)
             currentRow.createCell(0).setCellValue(touchCount.toString())

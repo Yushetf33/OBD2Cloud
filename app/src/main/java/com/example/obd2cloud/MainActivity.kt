@@ -103,7 +103,7 @@ class MainActivity : AppCompatActivity() {
         hereMapsService.obtenerMaxSpeedSeguido { maxSpeed ->
             // Actualiza el TextView en el hilo principal
             runOnUiThread {
-                maxSpeedDisplay.text = maxSpeed ?: "Cargando..."
+                maxSpeedDisplay.text = maxSpeed ?: "0"
             }
         }
     }
@@ -172,7 +172,8 @@ class MainActivity : AppCompatActivity() {
                                 Log.d("ARRANQUE JSON", "INICIANDO LLAMADA A LOG JSON")
                                 val jsonString = metricsManager.convertExcelToStructuredJson(fileName)
                                 filePath = metricsManager.saveJsonToFile(jsonString, fileNameJson)
-                                val apiDrivingStyle = ApiDrivingStyle(token = "51QR8LSjQQ6iU7Kh1dfXgilsCCz5d0Oq765sqv6o4zkJuedx8TAaJQQJ99BBAAAAAAAAAAAAINFRAZML1MLk", apiUrl = "https://modelo-clasificacion-turbc.spaincentral.inference.ml.azure.com/score")
+
+                                val apiDrivingStyle = ApiDrivingStyle(apiUrl = "https://clasificador-estilos-de-conduccion.onrender.com/predict")
                                 val response = apiDrivingStyle.sendPostRequest(filePath)
                                 Log.d("DEBUG", "Respuesta cruda de la API: $response")
                                 countResponses(response, this@MainActivity)

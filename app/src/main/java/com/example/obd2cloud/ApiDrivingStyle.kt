@@ -2,11 +2,12 @@ package com.example.obd2cloud
 
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.io.IOException
 
-class ApiDrivingStyle(private val token: String, private val apiUrl: String) {
+class ApiDrivingStyle(private val apiUrl: String) {
 
     private val client = OkHttpClient()
 
@@ -22,8 +23,7 @@ class ApiDrivingStyle(private val token: String, private val apiUrl: String) {
         val request = Request.Builder()
             .url(apiUrl)
             .post(body)
-            .addHeader("Authorization", "Bearer $token")
-            .addHeader("Content-Type", "application/json")
+            .addHeader("Content-Type", "application/json") // Solo el Content-Type
             .build()
 
         return try {
@@ -42,3 +42,4 @@ class ApiDrivingStyle(private val token: String, private val apiUrl: String) {
         }
     }
 }
+
