@@ -103,7 +103,7 @@ class MainActivity : AppCompatActivity() {
         hereMapsService.obtenerMaxSpeedSeguido { maxSpeed ->
             // Actualiza el TextView en el hilo principal
             runOnUiThread {
-                maxSpeedDisplay.text = maxSpeed ?: "0"
+                maxSpeedDisplay.text = maxSpeed ?: "Cargando..."
             }
         }
     }

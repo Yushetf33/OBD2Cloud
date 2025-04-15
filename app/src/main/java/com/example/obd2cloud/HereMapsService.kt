@@ -81,12 +81,16 @@ class HereMapsService(
 
         val lat = ubicacion.latitude
         val lon = ubicacion.longitude
+        val destLat = lat + 0.001
+        val destLon = lon + 0.001
 
-        val url =
-            "https://routemaps.hereapi.com/v8/attributes" +
-                    "?in=circle:$lat,$lon;r=50" +
-                    "&layers=SPEED_LIMITS_FCN" +
-                    "&apiKey=$apiKey"  // Parámetro actualizado
+        val url = "https://router.hereapi.com/v8/routes" +
+                "?transportMode=car" +
+                "&origin=$lat,$lon" +
+                "&destination=$destLat,$destLon" +
+                "&return=polyline,summary" +
+                "&spans=speedLimit" +
+                "&apiKey=$apiKey"
 
         val request = Request.Builder().url(url).get().build()
 
@@ -122,26 +126,30 @@ class HereMapsService(
         })
     }
 
-    private fun parsearMaxSpeed(jsonResponse: String): String? {
-        return try {
-            val jsonObject = JSONObject(jsonResponse)
-            val layers = jsonObject.getJSONObject("data").getJSONArray("layers")
+    private fun parsearMaxSpeed(json: String): String? {
+        try {
+            val jsonObject = JSONObject(json)
+            val routesArray = jsonObject.getJSONArray("routes")
+            if (routesArray.length() == 0) return null
 
-            if (layers.length() > 0) {
-                val features = layers.getJSONObject(0).getJSONArray("features")
-                for (i in 0 until features.length()) {
-                    val attributes = features.getJSONObject(i)
-                        .getJSONObject("attributes")
-                        .getJSONObject("dynamic_speed_info")  // Nueva estructura
+            val sectionsArray = routesArray.getJSONObject(0).getJSONArray("sections")
+            if (sectionsArray.length() == 0) return null
 
-                    val speed = attributes.optInt("speed_limit", 0)
-                    if (speed > 0) return speed.toString()
+            val section = sectionsArray.getJSONObject(0)
+
+            if (!section.has("spans")) return null
+            val spansArray = section.getJSONArray("spans")
+            for (i in 0 until spansArray.length()) {
+                val span = spansArray.getJSONObject(i)
+                if (span.has("speedLimit")) {
+                    val value = span.getDouble("speedLimit") // <- directamente el valor en m/s
+                    val kmh = (value * 3.6).toInt()
+                    return kmh.toString()
                 }
             }
-            null
         } catch (e: Exception) {
             Log.e("HereMapsService", "Error al parsear JSON: ${e.message}")
-            null
         }
+        return null
     }
 }
