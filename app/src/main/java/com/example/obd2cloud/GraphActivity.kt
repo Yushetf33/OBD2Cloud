@@ -15,6 +15,8 @@ import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.ScatterData
 import com.github.mikephil.charting.data.ScatterDataSet
+import com.github.mikephil.charting.formatter.IndexAxisValueFormatter
+import com.github.mikephil.charting.formatter.ValueFormatter
 import com.google.gson.Gson
 import java.io.File
 
@@ -25,6 +27,9 @@ class GraphActivity : AppCompatActivity() {
     private lateinit var engineLoadChart: BarChart
     private lateinit var rpmFuelTrimChart: ScatterChart
     private lateinit var fuelTrimChart: BarChart
+    private lateinit var throttleChart: LineChart
+    private lateinit var gearSpeedChart: ScatterChart
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,6 +40,9 @@ class GraphActivity : AppCompatActivity() {
         engineLoadChart = findViewById(R.id.engineLoadChart)
         rpmFuelTrimChart= findViewById(R.id.rpmFuelTrimChart)
         fuelTrimChart = findViewById(R.id.fuelTrimChart)
+        throttleChart = findViewById(R.id.throttleChart)
+        gearSpeedChart = findViewById(R.id.gearSpeedChart)
+
 
         val isNightMode = AppCompatDelegate.getDefaultNightMode() == AppCompatDelegate.MODE_NIGHT_YES
         val legendColor = if (!isNightMode) {
@@ -48,9 +56,12 @@ class GraphActivity : AppCompatActivity() {
 
         setupRPMChart(vehicleData, legendColor)
         setupSpeedChart(vehicleData, legendColor)
+        setupThrottleChart(vehicleData, legendColor)
         setupEngineLoadChart(vehicleData, legendColor)
         setupRpmFuelTrimChart(vehicleData, legendColor)
         setupFuelTrimChart(vehicleData, legendColor)
+        setupGearSpeedChart(vehicleData, legendColor)
+
     }
 
 
@@ -136,7 +147,94 @@ class GraphActivity : AppCompatActivity() {
             textSize = 16f  // Tamaño de la fuente
             textColor = legendColor
         }
+        rpmChart.setExtraTopOffset(10f)
     }
+
+    private fun setupThrottleChart(vehicleData: List<VehicleData>, legendColor: Int) {
+        val throttleEntries = ArrayList<Entry>()
+
+        vehicleData.forEachIndexed { index, data ->
+            throttleEntries.add(Entry(index.toFloat(), data.throttlePosition))
+        }
+
+        val throttleDataSet = LineDataSet(throttleEntries, "Throttle Position (%)")
+        throttleDataSet.color = ContextCompat.getColor(this, android.R.color.holo_orange_light)
+        throttleDataSet.setDrawCircles(false)
+        throttleDataSet.setDrawValues(false)
+
+        val lineData = LineData(throttleDataSet)
+        throttleChart.data = lineData
+        throttleChart.invalidate()
+
+        throttleChart.xAxis.apply {
+            textSize = 16f
+            textColor = legendColor
+        }
+        throttleChart.axisLeft.apply {
+            textSize = 16f
+            textColor = legendColor
+        }
+        throttleChart.axisRight.apply {
+            textSize = 16f
+        }
+        throttleChart.axisRight.isEnabled = false
+        throttleChart.xAxis.isEnabled = false
+        throttleChart.legend.apply {
+            textSize = 16f
+            textColor = legendColor
+        }
+        throttleChart.setExtraTopOffset(10f)
+
+    }
+
+    private fun setupGearSpeedChart(vehicleData: List<VehicleData>, legendColor: Int) {
+        val gearSpeedEntries = ArrayList<Entry>()
+
+        // Añadir puntos al gráfico: (gear, speed)
+        vehicleData.forEach { data ->
+            gearSpeedEntries.add(Entry(data.gear.toFloat(), data.speed))
+        }
+
+        val gearSpeedDataSet = ScatterDataSet(gearSpeedEntries, "Gear vs Speed")
+        gearSpeedDataSet.color = ContextCompat.getColor(this, android.R.color.holo_green_dark)
+        gearSpeedDataSet.setDrawValues(false)
+
+        val scatterData = ScatterData(gearSpeedDataSet)
+        gearSpeedChart.data = scatterData
+        gearSpeedChart.invalidate()
+
+        // Configurar eje X con marchas de 1 a 6
+        gearSpeedChart.xAxis.apply {
+            textSize = 16f
+            textColor = legendColor
+            granularity = 1f  // Forzar pasos de 1
+            axisMinimum = 0.5f  // Dejar espacio antes del 1
+            axisMaximum = 6.5f  // Dejar espacio después del 6
+            valueFormatter = object : ValueFormatter() {
+                override fun getFormattedValue(value: Float): String {
+                    val intVal = value.toInt()
+                    return if (intVal in 1..6) intVal.toString() else ""
+                }
+            }
+        }
+
+        // Eje Y (velocidad)
+        gearSpeedChart.axisLeft.apply {
+            textSize = 16f
+            textColor = legendColor
+        }
+
+        gearSpeedChart.axisRight.isEnabled = false
+
+        gearSpeedChart.legend.apply {
+            textSize = 16f
+            textColor = legendColor
+        }
+
+        gearSpeedChart.setExtraTopOffset(10f)
+    }
+
+
 
     private fun setupSpeedChart(vehicleData: List<VehicleData>, legendColor: Int) {
         val speedEntries = ArrayList<Entry>()
@@ -173,6 +271,8 @@ class GraphActivity : AppCompatActivity() {
             textSize = 16f  // Tamaño de la fuente
             textColor = legendColor
         }
+        speedChart.setExtraTopOffset(10f)
+
     }
 
     // Gráfico de barras para Engine Load
@@ -209,6 +309,8 @@ class GraphActivity : AppCompatActivity() {
             textSize = 16f  // Tamaño de la fuente
             textColor = legendColor
         }
+        engineLoadChart.setExtraTopOffset(10f)
+
     }
 
     // Gráfico de dispersión para RPM vs Fuel Trim
@@ -246,6 +348,8 @@ class GraphActivity : AppCompatActivity() {
             textSize = 16f  // Tamaño de la fuente
             textColor = legendColor
         }
+        rpmFuelTrimChart.setExtraTopOffset(10f)
+
     }
 
     // Gráfico de barras para Fuel Trim
@@ -282,5 +386,7 @@ class GraphActivity : AppCompatActivity() {
             textSize = 16f  // Tamaño de la fuente
             textColor = legendColor
         }
+        fuelTrimChart.setExtraTopOffset(10f)
+
     }
 }

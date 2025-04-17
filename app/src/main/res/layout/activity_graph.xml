@@ -45,6 +45,21 @@
             android:layout_height="350dp"
             android:layout_marginBottom="16dp"/>
 
+        <!-- Gráfico de líneas para Throttle Position -->
+        <com.github.mikephil.charting.charts.LineChart
+            android:id="@+id/throttleChart"
+            android:layout_width="match_parent"
+            android:layout_height="350dp"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Gráfico de dispersión para Gear vs Speed -->
+        <com.github.mikephil.charting.charts.ScatterChart
+            android:id="@+id/gearSpeedChart"
+            android:layout_width="match_parent"
+            android:layout_height="350dp"
+            android:layout_marginBottom="16dp" />
+
+
     </LinearLayout>
 
 </ScrollView>
