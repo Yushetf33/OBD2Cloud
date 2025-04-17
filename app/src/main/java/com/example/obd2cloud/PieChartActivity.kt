@@ -134,6 +134,8 @@ class PieChartActivity : AppCompatActivity() {
         val averageFuelTrim = vehicleData.map { it.fuelTrim }.average()
         val averageThrottlePosition = vehicleData.map { it.throttlePosition }.average()
         val averageEngineLoad = vehicleData.map { it.engineLoad }.average()
+        val averageGear = vehicleData.map { it.gear }.average()
+
 
         // Consejos básicos basados en el estilo de conducción
         var advice = ""
@@ -177,6 +179,19 @@ class PieChartActivity : AppCompatActivity() {
         if (averageEngineLoad > 75) {
             advice += "\nEl motor está trabajando con una carga elevada. Evita aceleraciones bruscas y mantén velocidades constantes."
         }
+        if (averageRpm > 3000 && averageThrottlePosition > 40) {
+            advice += "\nEstás acelerando con fuerza frecuentemente. Intenta una conducción más progresiva para ahorrar combustible."
+        }
+
+        if (averageGear < 3 && averageRpm > 2500) {
+            advice += "\nSueles conducir en marchas bajas con muchas revoluciones. Cambia a marchas superiores para mejorar la eficiencia."
+        }
+
+        val idleTime = vehicleData.count { it.rpm > 800 && it.speed < 5 }
+        if (idleTime > vehicleData.size * 0.3) {
+            advice += "\nTu vehículo ha estado mucho tiempo encendido sin moverse. Esto puede generar consumo innecesario. Apaga el motor si no estás en movimiento."
+        }
+
         return advice
     }
 

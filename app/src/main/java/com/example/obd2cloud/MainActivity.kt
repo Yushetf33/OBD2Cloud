@@ -141,10 +141,10 @@ class MainActivity : AppCompatActivity() {
                                 try {
                                     // Obtén y convierte las vistas a valores
                                     val currentRPM = findViewById<TextView>(R.id.RPM_display)?.text.toString().toIntOrNull() ?: 0
-                                    val currentFuelTrim = findViewById<TextView>(R.id.fuel_display)?.text.toString().toDoubleOrNull() ?: 0.0
+                                    val currentFuelTrim = findViewById<TextView>(R.id.fuel_display)?.text.toString().replace(",", ".").toDoubleOrNull() ?: 0.0
                                     val currentSpeed = findViewById<TextView>(R.id.speed_display)?.text.toString().toIntOrNull() ?: 0
-                                    val currentThrottle = findViewById<TextView>(R.id.throttle_display)?.text.toString().toDoubleOrNull() ?: 0.0
-                                    val currentEngineLoad = findViewById<TextView>(R.id.engine_load_display)?.text.toString().toDoubleOrNull() ?: 0.0
+                                    val currentThrottle = findViewById<TextView>(R.id.throttle_display)?.text.toString().replace(",", ".").toDoubleOrNull() ?: 0.0
+                                    val currentEngineLoad = findViewById<TextView>(R.id.engine_load_display)?.text.toString().replace(",", ".").toDoubleOrNull() ?: 0.0
                                     val currentGear = findViewById<TextView>(R.id.gear_display)?.text.toString().toIntOrNull() ?: 0
                                     val speedDifference = currentSpeed - maxSpeedDisplay.text.toString().toInt()
 
