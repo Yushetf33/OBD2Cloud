@@ -40,10 +40,5 @@ Precisión alcanzada: **98.94%** en condiciones reales (modelo completo).
 
 ## 📸 Capturas de pantalla
 
-*(Aquí puedes añadir imágenes del sistema, interfaz o gráficos)*
+*(Añadir)*
 
-## 🛠 Instalación
-
-1. Clona el repositorio:
-```bash
-git clone https://github.com/tuusuario/tu-repo.git
