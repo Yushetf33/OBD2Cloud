@@ -38,8 +38,8 @@ Precisión alcanzada: **98.94%** en condiciones reales (modelo completo).
 - 🌱 Contribución a la sostenibilidad medioambiental.
 - 📚 Aplicación en educación vial, seguros basados en comportamiento y flotas comerciales.
 
-## 📸 Capturas de pantalla
+## 🎥 Demostración en vídeo
 
-*(Añadir)*
+👉 [Ver vídeo de la aplicación en funcionamiento]((https://drive.google.com/file/d/1IGN0WBIEY37bWfzcJPj4ABefUi3HAEch/view?usp=sharing)
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Yushetf33/OBD2Cloud)
