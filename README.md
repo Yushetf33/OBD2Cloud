@@ -40,6 +40,6 @@ Precisión alcanzada: **98.94%** en condiciones reales (modelo completo).
 
 ## 🎥 Demostración en vídeo
 
-👉 [Ver vídeo de la aplicación en funcionamiento]((https://drive.google.com/file/d/1IGN0WBIEY37bWfzcJPj4ABefUi3HAEch/view?usp=sharing)
+👉 [Ver vídeo de la aplicación en funcionamiento](https://drive.google.com/file/d/1IGN0WBIEY37bWfzcJPj4ABefUi3HAEch/view?usp=sharing)
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Yushetf33/OBD2Cloud)
